@@ -1,0 +1,1100 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="description" content="Sistema de ponto eletrônico com salvamento automático, previsões inteligentes e exportação de relatórios">
+    <meta name="author" content="Ponto Manager Pro">
+    <meta name="keywords" content="ponto, horário, trabalho, jornada, controle de ponto">
+    <meta property="og:title" content="Ponto Manager Pro">
+    <meta property="og:description" content="Gerencie sua jornada de trabalho com previsões inteligentes">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#1e3c72">
+    
+    <title>Ponto Manager Pro | Controle de Jornada</title>
+    
+    <!-- Favicon - Ícone legal para o Git Pages -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231e3c72'/><circle cx='50' cy='35' r='12' fill='%23ffffff'/><path d='M30 55 L70 55 L65 75 L35 75 Z' fill='%23ffffff'/><rect x='42' y='45' width='16' height='10' rx='3' fill='%23ffffff'/><circle cx='38' cy='70' r='5' fill='%23fbbf24'/><circle cx='62' cy='70' r='5' fill='%23fbbf24'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231e3c72'/><circle cx='50' cy='35' r='12' fill='%23ffffff'/><path d='M30 55 L70 55 L65 75 L35 75 Z' fill='%23ffffff'/><rect x='42' y='45' width='16' height='10' rx='3' fill='%23ffffff'/></svg>">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #d4e0f0 0%, #e9f0f5 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0f2b4f, #1e3c72);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1::before {
+            content: "⏱️";
+            font-size: 1.8rem;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .points-panel {
+            flex: 2;
+            min-width: 480px;
+        }
+
+        .info-panel {
+            flex: 1.2;
+            min-width: 320px;
+        }
+
+        .toggle-panel {
+            background: #f1f5f9;
+            border-radius: 3rem;
+            padding: 0.3rem;
+            display: flex;
+            margin-bottom: 1.5rem;
+            gap: 0.5rem;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            text-align: center;
+            padding: 0.6rem 0;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+
+        .toggle-btn.active {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            color: #1e3c72;
+            border: 1px solid #cbd5e1;
+        }
+
+        .points-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .point-card {
+            background: #f9fafc;
+            border-radius: 1rem;
+            padding: 0.7rem 1rem;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            transition: all 0.2s;
+        }
+
+        .point-card:focus-within {
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 2px rgba(30,60,114,0.2);
+        }
+
+        .point-label {
+            font-weight: 700;
+            min-width: 95px;
+            color: #0f3b5f;
+            font-size: 0.85rem;
+        }
+
+        .time-input {
+            flex: 1;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 1.5rem;
+            font-size: 0.9rem;
+            font-family: monospace;
+            background: white;
+            transition: 0.2s;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 3px rgba(30,60,114,0.15);
+        }
+
+        .btn-reset-row {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #94a3b8;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .btn-reset-row:hover {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .date-selector {
+            background: #f1f5f9;
+            border-radius: 1rem;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .date-nav-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+        }
+
+        .date-nav-group button {
+            background: #1e3c72;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .date-nav-group button:hover {
+            background: #0f2b4f;
+            transform: scale(1.05);
+        }
+
+        #currentDateDisplay {
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.3rem 1rem;
+            background: #e2e8f0;
+            border-radius: 1.5rem;
+            font-family: monospace;
+        }
+
+        #weekdayDisplay {
+            font-size: 0.9rem;
+            color: #1e3c72;
+            font-weight: 500;
+            background: white;
+            padding: 0.3rem 1rem;
+            border-radius: 1.5rem;
+        }
+
+        .btn-highlight {
+            background: linear-gradient(135deg, #0f5c3a, #1a7a4c);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(26,122,76,0.3);
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-highlight:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(26,122,76,0.4);
+        }
+
+        .previsao-box {
+            background: #f0f9ff;
+            border-radius: 1.2rem;
+            padding: 0.8rem;
+            margin: 1rem 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .previsao-item {
+            background: white;
+            border-radius: 1rem;
+            padding: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .previsao-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #1e3c72;
+        }
+
+        .previsao-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #4b6b8f;
+            letter-spacing: 0.5px;
+        }
+
+        .previsao-valor {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #0f2b4f;
+        }
+
+        .result-area {
+            background: #f1f5f9;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-top: 0.8rem;
+        }
+
+        .total-hours {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #0a2b44;
+            text-align: center;
+        }
+
+        .detail-list {
+            font-size: 0.75rem;
+            color: #2d3e5f;
+            background: white;
+            padding: 0.6rem;
+            border-radius: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.7rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            background: #eef2ff;
+            color: #1e3c72;
+        }
+
+        .btn-outline {
+            border: 1px solid #cbd5e1;
+            background: white;
+        }
+
+        .btn-outline:hover {
+            background: #f8fafc;
+        }
+
+        .history-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .history-panel.open {
+            max-height: 550px;
+            overflow-y: auto;
+        }
+
+        .history-header {
+            background: #1e3c72;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .export-buttons button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 0.3rem 0.8rem;
+            border-radius: 1rem;
+            color: white;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: 0.2s;
+        }
+
+        .export-buttons button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .history-table th {
+            background: #e2e8f0;
+            padding: 8px 6px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+        }
+
+        .history-table td {
+            padding: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .saldo-positivo {
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        .saldo-negativo {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+        .btn-delete-day {
+            background: #b91c1c;
+            color: white;
+            border: none;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: 0.2s;
+        }
+
+        .btn-delete-day:hover {
+            background: #991b1b;
+            transform: scale(1.05);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success { background: #0f5c3a; border-left: 4px solid #4ade80; }
+        .toast.error { background: #991b1b; border-left: 4px solid #f87171; }
+        .toast.info { background: #1e3c72; border-left: 4px solid #60a5fa; }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #5b6e8c;
+            padding: 0.8rem;
+            border-top: 1px solid #e9edf2;
+            background: #fefefe;
+        }
+
+        .github-corner {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        @media (max-width: 900px) {
+            .main-content { flex-direction: column; }
+            .points-grid { grid-template-columns: 1fr; }
+            .history-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<!-- GitHub Corner -->
+<a href="https://github.com/seuusuario/ponto-manager" class="github-corner" target="_blank" aria-label="GitHub">
+    <svg width="70" height="70" viewBox="0 0 250 250" style="fill:#1e3c72; color:#fff; position: fixed; top: 0; right: 0; border: 0; z-index: 100;">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+        <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+        <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path>
+    </svg>
+</a>
+
+<div class="container">
+    <div class="header">
+        <h1>Ponto Manager Pro</h1>
+        <div class="header-controls">
+            <button id="historyBtn" class="btn btn-outline" style="background: rgba(255,255,255,0.2); color: white;">📋 HISTÓRICO</button>
+            <button id="clearAllBtn" class="btn btn-outline" style="background: rgba(255,255,255,0.15); color: white;">🗑️ Limpar tudo</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="points-panel">
+            <div class="toggle-panel">
+                <button id="mode4Btn" class="toggle-btn active">📌 4 Pontos</button>
+                <button id="mode6Btn" class="toggle-btn">⏲️ 6 Pontos</button>
+            </div>
+
+            <div class="date-selector">
+                <div class="date-nav-group">
+                    <button id="prevDayBtn">◀</button>
+                    <span id="currentDateDisplay"></span>
+                    <button id="nextDayBtn">▶</button>
+                    <button id="todayBtn" style="width: auto; padding: 0 12px;">Hoje</button>
+                </div>
+                <div id="weekdayDisplay">--</div>
+            </div>
+
+            <div id="pointsContainer" class="points-grid"></div>
+
+            <div class="action-buttons">
+                <button id="agoraBtn" class="btn-highlight">⏰ MARCAR PRÓXIMO PONTO</button>
+                <button id="resetAllBtn" class="btn btn-outline">🔄 Limpar campos</button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div id="previsaoContainer" class="previsao-box" style="display: none;">
+                <div class="previsao-item" id="previsaoAlmocoCard">
+                    <div class="previsao-label">🍽️ PREVISÃO VOLTA DO ALMOÇO</div>
+                    <div class="previsao-valor" id="previsaoAlmoco">--:--</div>
+                    <div style="font-size:0.6rem; margin-top: 4px;">🔽 Clique para aplicar (padrão 1h30)</div>
+                </div>
+                <div class="previsao-item" id="previsaoOitoCard">
+                    <div class="previsao-label">🎯 PREVISÃO PARA COMPLETAR 8H</div>
+                    <div class="previsao-valor" id="previsaoOitoHoras">--:--</div>
+                    <div style="font-size:0.6rem; margin-top: 4px;">🔽 Clique para aplicar</div>
+                </div>
+            </div>
+
+            <div class="result-area">
+                <div class="total-hours" id="totalHorasDisplay">-- h -- min</div>
+                <div class="detail-list" id="detailDisplay">
+                    <p>📌 Preencha os horários (salvamento automático)</p>
+                </div>
+                <div id="intervaloDisplay" style="background: #e6f7e6; padding: 0.5rem; border-radius: 1rem; margin-top: 0.5rem; text-align: center; font-size: 0.75rem; font-weight: 600;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyPanel" class="history-panel">
+        <div class="history-header">
+            <span>📅 Histórico de Pontos</span>
+            <div class="export-buttons">
+                <button id="exportCSVBtn">📄 CSV</button>
+                <button id="exportJSONBtn">📋 JSON</button>
+                <button id="exportPDFBtn">📑 PDF</button>
+            </div>
+            <button id="closeHistoryBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.3rem 1rem; border-radius: 1rem; cursor: pointer;">✖️ Fechar</button>
+        </div>
+        <div style="overflow-x: auto; padding: 0.5rem;">
+            <table class="history-table" id="historyTable">
+                <thead>
+                    <tr><th>Data</th><th>Dia</th><th>Ent1</th><th>Sai1</th><th>Ent2</th><th>Sai2</th><th>Intervalo</th><th>Total</th><th>Saldo</th><th>Acum.</th><th></th></tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        💾 Salvamento AUTOMÁTICO • Exportação CSV/JSON/PDF • Dias da semana CORRETOS • Dados salvos localmente
+    </footer>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+    const STORAGE_KEY = "pontoManagerFinalV3";
+    const ALMOCO_PADRAO = 90;
+    const META_MINUTOS = 480;
+
+    let currentMode = 4;
+    let currentDate = new Date();
+    let pointsData = [];
+    let inputElements = [];
+    let historico = {};
+    let saveTimeout = null;
+
+    // DOM Elements
+    const pointsContainer = document.getElementById('pointsContainer');
+    const mode4Btn = document.getElementById('mode4Btn');
+    const mode6Btn = document.getElementById('mode6Btn');
+    const resetAllBtn = document.getElementById('resetAllBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const agoraBtn = document.getElementById('agoraBtn');
+    const prevDayBtn = document.getElementById('prevDayBtn');
+    const nextDayBtn = document.getElementById('nextDayBtn');
+    const todayBtn = document.getElementById('todayBtn');
+    const currentDateDisplay = document.getElementById('currentDateDisplay');
+    const weekdayDisplay = document.getElementById('weekdayDisplay');
+    const totalHorasDisplay = document.getElementById('totalHorasDisplay');
+    const detailDisplay = document.getElementById('detailDisplay');
+    const intervaloDisplay = document.getElementById('intervaloDisplay');
+    const previsaoContainer = document.getElementById('previsaoContainer');
+    const previsaoAlmocoSpan = document.getElementById('previsaoAlmoco');
+    const previsaoOitoHorasSpan = document.getElementById('previsaoOitoHoras');
+    const previsaoAlmocoCard = document.getElementById('previsaoAlmocoCard');
+    const previsaoOitoCard = document.getElementById('previsaoOitoCard');
+    const historyPanel = document.getElementById('historyPanel');
+    const historyBtn = document.getElementById('historyBtn');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const historyBody = document.getElementById('historyBody');
+    const toast = document.getElementById('toast');
+    const exportCSVBtn = document.getElementById('exportCSVBtn');
+    const exportJSONBtn = document.getElementById('exportJSONBtn');
+    const exportPDFBtn = document.getElementById('exportPDFBtn');
+
+    function showToast(message, type = 'info') {
+        toast.className = `toast ${type} show`;
+        toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️'}</span> ${message}`;
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function getDiaSemanaPorData(dataStr) {
+        const partes = dataStr.split('-');
+        const ano = parseInt(partes[0]);
+        const mes = parseInt(partes[1]) - 1;
+        const dia = parseInt(partes[2]);
+        const dataLocal = new Date(ano, mes, dia);
+        const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+        return dias[dataLocal.getDay()];
+    }
+
+    function getDiaSemanaAtual(date) {
+        const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+        return dias[date.getDay()];
+    }
+
+    function formatDateToKey(date) {
+        let year = date.getFullYear();
+        let month = (date.getMonth() + 1).toString().padStart(2, '0');
+        let day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function getCurrentKey() { return formatDateToKey(currentDate); }
+
+    function loadHistory() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) { try { historico = JSON.parse(stored); } catch(e) { historico = {}; } }
+        if (!historico) historico = {};
+    }
+
+    function saveHistory() { 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(historico));
+    }
+
+    function autoSave() {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            const key = getCurrentKey();
+            for (let i = 0; i < inputElements.length; i++) {
+                if (inputElements[i]) pointsData[i] = inputElements[i].value;
+            }
+            historico[key] = { mode: currentMode, points: [...pointsData] };
+            saveHistory();
+            renderHistoryTable();
+            calcularTudo();
+            showToast('Salvo automaticamente', 'success');
+        }, 500);
+    }
+
+    function loadDayByKey(key) {
+        const dayData = historico[key];
+        if (dayData) {
+            currentMode = dayData.mode;
+            pointsData = [...dayData.points];
+        } else {
+            currentMode = 4;
+            pointsData = new Array(4).fill("");
+        }
+        updateUIModeSelection();
+        rebuildUIWithData();
+    }
+
+    function updateUIModeSelection() {
+        if (currentMode === 4) { mode4Btn.classList.add('active'); mode6Btn.classList.remove('active'); }
+        else { mode6Btn.classList.add('active'); mode4Btn.classList.remove('active'); }
+    }
+
+    function getPointLabels(mode) {
+        if (mode === 4) return ["🌅 Entrada 1", "🌙 Saída 1", "🍽️ Entrada 2", "🏁 Saída 2"];
+        return ["🌅 Entrada 1", "🌙 Saída 1", "🍽️ Entrada 2", "🌙 Saída 2", "📌 Entrada 3", "🏁 Saída 3"];
+    }
+
+    function rebuildUIWithData() {
+        const labels = getPointLabels(currentMode);
+        const n = labels.length;
+        while (pointsData.length < n) pointsData.push("");
+        while (pointsData.length > n) pointsData.pop();
+        
+        let html = '';
+        for (let i = 0; i < n; i++) {
+            const value = pointsData[i] || '';
+            html += `<div class="point-card"><span class="point-label">${labels[i]}</span>
+                <input type="time" class="time-input" id="pointInput_${i}" value="${value}" step="60">
+                <button class="btn-reset-row" data-idx="${i}">✖️</button></div>`;
+        }
+        pointsContainer.innerHTML = html;
+        
+        inputElements = [];
+        for (let i = 0; i < n; i++) {
+            const input = document.getElementById(`pointInput_${i}`);
+            if (input) {
+                inputElements.push(input);
+                input.addEventListener('input', () => autoSave());
+            } else { inputElements.push(null); }
+        }
+        
+        document.querySelectorAll('.btn-reset-row').forEach(btn => {
+            const idx = parseInt(btn.getAttribute('data-idx'), 10);
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (inputElements[idx]) { inputElements[idx].value = ''; pointsData[idx] = ''; autoSave(); }
+            });
+        });
+        calcularTudo();
+    }
+
+    function parseTimeToMinutes(timeStr) {
+        if (!timeStr || timeStr.trim() === '') return null;
+        const parts = timeStr.split(':');
+        if (parts.length !== 2) return null;
+        let h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return h * 60 + m;
+    }
+
+    function formatTimeFromMinutes(min) {
+        if (min === null) return '--:--';
+        let h = Math.floor(min / 60) % 24, m = min % 60;
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+    }
+
+    function formatMinutos(min) {
+        const sinal = min < 0 ? "-" : "", absMin = Math.abs(min);
+        return `${sinal}${Math.floor(absMin / 60)}h${(absMin % 60).toString().padStart(2,'0')}`;
+    }
+
+    function getIntervaloReal() {
+        const sai1 = pointsData[1]?.trim() || "", ent2 = pointsData[2]?.trim() || "";
+        if (!sai1 || !ent2) return null;
+        const saiMin = parseTimeToMinutes(sai1), entMin = parseTimeToMinutes(ent2);
+        if (saiMin === null || entMin === null || entMin <= saiMin) return null;
+        return entMin - saiMin;
+    }
+
+    function getValidIntervalsAndTotal() {
+        let totalMin = 0, intervals = [], warnings = [];
+        for (let i = 0; i < pointsData.length; i += 2) {
+            const ent = pointsData[i]?.trim() || "", sai = pointsData[i+1]?.trim() || "";
+            if (!ent && !sai) continue;
+            if (ent && !sai) { warnings.push(`Período ${i/2+1}: entrada sem saída`); continue; }
+            if (!ent && sai) { warnings.push(`Período ${i/2+1}: saída sem entrada`); continue; }
+            const entMin = parseTimeToMinutes(ent), saiMin = parseTimeToMinutes(sai);
+            if (entMin === null || saiMin === null) { warnings.push(`Período ${i/2+1}: formato inválido`); continue; }
+            if (saiMin <= entMin) { warnings.push(`Período ${i/2+1}: saída deve ser após entrada`); continue; }
+            totalMin += (saiMin - entMin);
+            intervals.push({ periodo: i/2+1, entrada: ent, saida: sai, minutos: saiMin - entMin });
+        }
+        return { totalMin, intervals, warnings };
+    }
+
+    function getPrevisaoAlmoco() {
+        const ent2 = pointsData[2]?.trim() || "";
+        if (ent2) return null;
+        const sai1 = pointsData[1]?.trim() || "";
+        if (!sai1) return null;
+        const saiMin = parseTimeToMinutes(sai1);
+        if (saiMin === null) return null;
+        const volta = saiMin + ALMOCO_PADRAO;
+        return volta >= 1440 ? null : volta;
+    }
+
+    function getPrevisaoOitoHoras(totalAtual) {
+        if (totalAtual >= META_MINUTOS) return { status: 'atingida', horario: null };
+        let ultimoMin = null;
+        for (let i = pointsData.length-1; i >= 0; i--) {
+            const val = pointsData[i]?.trim();
+            if (val) { const p = parseTimeToMinutes(val); if (p !== null) { ultimoMin = p; break; } }
+        }
+        if (ultimoMin === null) return null;
+        let faltam = META_MINUTOS - totalAtual;
+        const ent2 = pointsData[2]?.trim() || "";
+        const sai1 = pointsData[1]?.trim() || "";
+        if (!ent2 && sai1) {
+            const previsaoAlmoco = getPrevisaoAlmoco();
+            if (previsaoAlmoco && previsaoAlmoco > ultimoMin) {
+                const aposAlmoco = previsaoAlmoco + faltam;
+                if (aposAlmoco < 1440) return { status: 'ok', horario: aposAlmoco };
+            }
+        }
+        const fim = ultimoMin + faltam;
+        if (fim >= 1440) return { status: 'proximo_dia', horario: null };
+        return { status: 'ok', horario: fim };
+    }
+
+    function calcularTudo() {
+        for (let i = 0; i < inputElements.length; i++) {
+            if (inputElements[i]) pointsData[i] = inputElements[i].value;
+        }
+        const { totalMin, intervals, warnings } = getValidIntervalsAndTotal();
+        const horas = Math.floor(totalMin / 60), mins = totalMin % 60;
+        totalHorasDisplay.innerHTML = `${horas}h ${mins}min <small>trabalhados</small>`;
+        
+        const intervaloReal = getIntervaloReal();
+        if (intervaloReal !== null && intervaloReal > 0) {
+            const intHoras = Math.floor(intervaloReal / 60), intMins = intervaloReal % 60;
+            const diferenca = intervaloReal - ALMOCO_PADRAO;
+            let status = '';
+            if (diferenca > 0) status = ` (${formatMinutos(diferenca)} a mais)`;
+            else if (diferenca < 0) status = ` (${formatMinutos(Math.abs(diferenca))} a menos)`;
+            intervaloDisplay.innerHTML = `🍽️ Intervalo REAL: ${intHoras}h${intMins > 0 ? intMins+'min' : ''}${status}`;
+        } else { intervaloDisplay.innerHTML = ''; }
+        
+        let detailHtml = '';
+        if (intervals.length) {
+            intervals.forEach(i => { const dur = `${Math.floor(i.minutos/60)}h${i.minutos%60 > 0 ? (i.minutos%60)+'min' : ''}`;
+                detailHtml += `<p>🔹 ${i.entrada} → ${i.saida} = ${dur}</p>`; });
+            const saldo = totalMin - 480;
+            detailHtml += `<p><strong>Total:</strong> ${horas}h ${mins}min | <strong>Saldo:</strong> <span class="${saldo > 0 ? 'saldo-positivo' : (saldo < 0 ? 'saldo-negativo' : '')}">${formatMinutos(saldo)}</span></p>`;
+        } else { detailHtml += `<p>⏳ Nenhum período válido.</p>`; }
+        detailDisplay.innerHTML = detailHtml;
+        
+        const previsaoAlmoco = getPrevisaoAlmoco();
+        if (previsaoAlmoco !== null) {
+            previsaoAlmocoSpan.innerText = formatTimeFromMinutes(previsaoAlmoco);
+            previsaoContainer.style.display = 'flex';
+        } else { previsaoAlmocoSpan.innerText = pointsData[2]?.trim() ? "✓ definido" : "---"; previsaoContainer.style.display = 'flex'; }
+        
+        const previsao8h = getPrevisaoOitoHoras(totalMin);
+        if (previsao8h && previsao8h.status === 'ok') { previsaoOitoHorasSpan.innerText = formatTimeFromMinutes(previsao8h.horario); }
+        else if (previsao8h && previsao8h.status === 'atingida') { previsaoOitoHorasSpan.innerText = "✅ Meta atingida!"; }
+        else { previsaoOitoHorasSpan.innerText = "---"; }
+    }
+
+    function aplicarPrevisaoAlmoco() {
+        const prevMin = getPrevisaoAlmoco();
+        if (prevMin !== null && inputElements[2]) {
+            inputElements[2].value = formatTimeFromMinutes(prevMin);
+            pointsData[2] = formatTimeFromMinutes(prevMin);
+            autoSave();
+            showToast(`✅ Almoço aplicado: ${formatTimeFromMinutes(prevMin)}`, 'success');
+        } else { showToast(`⚠️ Preencha a Saída 1 primeiro`, 'error'); }
+    }
+
+    function aplicarCompletar8h() {
+        const { totalMin } = getValidIntervalsAndTotal();
+        const previsao = getPrevisaoOitoHoras(totalMin);
+        const ultimoIdx = pointsData.length - 1;
+        if (previsao && previsao.status === 'ok' && inputElements[ultimoIdx] && (!pointsData[ultimoIdx] || pointsData[ultimoIdx].trim() === '')) {
+            inputElements[ultimoIdx].value = formatTimeFromMinutes(previsao.horario);
+            pointsData[ultimoIdx] = formatTimeFromMinutes(previsao.horario);
+            autoSave();
+            showToast(`🎯 Horário para 8h: ${formatTimeFromMinutes(previsao.horario)}`, 'success');
+        } else if (previsao && previsao.status === 'atingida') { showToast(`🎉 Você já atingiu 8h hoje!`, 'success'); }
+        else { showToast(`⚠️ Não foi possível prever`, 'error'); }
+    }
+
+    function limparCamposAtuais() {
+        for (let i = 0; i < inputElements.length; i++) {
+            if (inputElements[i]) { inputElements[i].value = ''; pointsData[i] = ''; }
+        }
+        autoSave();
+        showToast(`🗑️ Campos do dia limpos`, 'info');
+    }
+
+    function excluirDiaHistorico(dataKey) {
+        if (confirm(`Excluir o dia ${dataKey} do histórico?`)) {
+            delete historico[dataKey];
+            saveHistory();
+            renderHistoryTable();
+            if (getCurrentKey() === dataKey) refreshDayDisplay();
+            showToast(`✅ Dia ${dataKey} removido`, 'success');
+        }
+    }
+
+    function limparTudo() {
+        if (confirm("⚠️ Isso apagará TODOS os registros! Irreversível.")) {
+            historico = {};
+            saveHistory();
+            refreshDayDisplay();
+            renderHistoryTable();
+            showToast(`🗑️ Todos os registros foram apagados`, 'info');
+        }
+    }
+
+    function marcarProximoPonto() {
+        for (let i = 0; i < inputElements.length; i++) {
+            if (inputElements[i] && (!pointsData[i] || pointsData[i].trim() === '')) {
+                const now = new Date();
+                const horaStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+                inputElements[i].value = horaStr;
+                pointsData[i] = horaStr;
+                autoSave();
+                showToast(`✅ Ponto marcado: ${horaStr}`, 'success');
+                return;
+            }
+        }
+        showToast(`⚠️ Todos os campos já estão preenchidos!`, 'error');
+    }
+
+    function getDadosParaExportacao() {
+        const sortedDates = Object.keys(historico).sort();
+        const dados = [];
+        let acumulado = 0;
+        for (const date of sortedDates) {
+            const record = historico[date];
+            const points = record.points;
+            let totalMin = 0;
+            for (let i = 0; i < points.length; i += 2) {
+                const ent = points[i] || "", sai = points[i+1] || "";
+                if (ent && sai) {
+                    const e = parseTimeToMinutes(ent), s = parseTimeToMinutes(sai);
+                    if (e !== null && s !== null && s > e) totalMin += (s - e);
+                }
+            }
+            let intervaloReal = null;
+            const sai1 = points[1] || "", ent2 = points[2] || "";
+            if (sai1 && ent2) {
+                const s = parseTimeToMinutes(sai1), e = parseTimeToMinutes(ent2);
+                if (s !== null && e !== null && e > s) intervaloReal = e - s;
+            }
+            const saldoDia = totalMin - 480;
+            acumulado += saldoDia;
+            const diaSemanaCorreto = getDiaSemanaPorData(date);
+            dados.push({
+                data: date,
+                diaSemana: diaSemanaCorreto,
+                entrada1: points[0] || '',
+                saida1: points[1] || '',
+                entrada2: points[2] || '',
+                saida2: points[3] || '',
+                intervalo: intervaloReal ? `${Math.floor(intervaloReal/60)}h${(intervaloReal%60).toString().padStart(2,'0')}` : '',
+                totalHoras: `${Math.floor(totalMin/60)}h${(totalMin%60).toString().padStart(2,'0')}`,
+                saldoDia: saldoDia,
+                saldoAcumulado: acumulado
+            });
+        }
+        return dados;
+    }
+
+    function exportarCSV() {
+        const dados = getDadosParaExportacao();
+        let csv = "Data,Dia da Semana,Entrada 1,Saída 1,Entrada 2,Saída 2,Intervalo,Total Horas,Saldo Dia (min),Saldo Acumulado (min)\n";
+        dados.forEach(d => {
+            csv += `${d.data},${d.diaSemana},${d.entrada1},${d.saida1},${d.entrada2},${d.saida2},${d.intervalo},${d.totalHoras},${d.saldoDia},${d.saldoAcumulado}\n`;
+        });
+        const blob = new Blob(["\uFEFF" + csv], {type: "text/csv;charset=utf-8;"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `ponto_historico_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('CSV exportado com sucesso!', 'success');
+    }
+
+    function exportarJSON() {
+        const dados = getDadosParaExportacao();
+        const jsonStr = JSON.stringify(dados, null, 2);
+        const blob = new Blob([jsonStr], {type: "application/json"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `ponto_historico_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('JSON exportado com sucesso!', 'success');
+    }
+
+    function exportarPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const dados = getDadosParaExportacao();
+        const tableData = dados.map(d => [
+            d.data, d.diaSemana, d.entrada1, d.saida1, d.entrada2, d.saida2, d.intervalo, d.totalHoras, 
+            `${Math.floor(d.saldoDia/60)}h${(d.saldoDia%60).toString().padStart(2,'0')}`,
+            `${Math.floor(d.saldoAcumulado/60)}h${(d.saldoAcumulado%60).toString().padStart(2,'0')}`
+        ]);
+        doc.autoTable({
+            head: [['Data', 'Dia', 'Ent1', 'Sai1', 'Ent2', 'Sai2', 'Intervalo', 'Total', 'Saldo Dia', 'Saldo Acum.']],
+            body: tableData,
+            theme: 'striped',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [30, 60, 114] }
+        });
+        doc.save(`ponto_historico_${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast('PDF exportado com sucesso!', 'success');
+    }
+
+    function renderHistoryTable() {
+        const sortedDates = Object.keys(historico).sort();
+        let acumulado = 0, rows = '';
+        for (const date of sortedDates) {
+            const record = historico[date];
+            const points = record.points;
+            let totalMin = 0;
+            for (let i = 0; i < points.length; i += 2) {
+                const ent = points[i] || "", sai = points[i+1] || "";
+                if (ent && sai) {
+                    const e = parseTimeToMinutes(ent), s = parseTimeToMinutes(sai);
+                    if (e !== null && s !== null && s > e) totalMin += (s - e);
+                }
+            }
+            let intervaloReal = null;
+            const sai1 = points[1] || "", ent2 = points[2] || "";
+            if (sai1 && ent2) {
+                const s = parseTimeToMinutes(sai1), e = parseTimeToMinutes(ent2);
+                if (s !== null && e !== null && e > s) intervaloReal = e - s;
+            }
+            const saldoDia = totalMin - 480;
+            acumulado += saldoDia;
+            const diaSemanaCorreto = getDiaSemanaPorData(date).substring(0,3);
+            const intervaloStr = intervaloReal ? `${Math.floor(intervaloReal/60)}h${(intervaloReal%60).toString().padStart(2,'0')}` : '---';
+            rows += `<tr>
+                <td>${date.split('-')[2]}/${date.split('-')[1]}</td><td>${diaSemanaCorreto}</td>
+                <td>${points[0] || '---'}</td><td>${points[1] || '---'}</td>
+                <td>${points[2] || '---'}</td><td>${points[3] || '---'}</td>
+                <td>${intervaloStr}</td><td>${formatMinutos(totalMin)}</td>
+                <td class="${saldoDia > 0 ? 'saldo-positivo' : (saldoDia < 0 ? 'saldo-negativo' : '')}">${formatMinutos(saldoDia)}</td>
+                <td class="${acumulado > 0 ? 'saldo-positivo' : (acumulado < 0 ? 'saldo-negativo' : '')}">${formatMinutos(acumulado)}</td>
+                <td><button class="btn-delete-day" onclick="window.excluirDiaHistorico('${date}')">🗑️</button></td>
+            </tr>`;
+        }
+        historyBody.innerHTML = rows || '<tr><td colspan="11" style="text-align:center;">Nenhum registro encontrado</td></tr>';
+    }
+
+    function refreshDayDisplay() {
+        currentDateDisplay.innerText = getCurrentKey().split('-').reverse().join('/');
+        weekdayDisplay.innerText = getDiaSemanaAtual(currentDate);
+        loadDayByKey(getCurrentKey());
+    }
+
+    function changeDay(delta) { const d = new Date(currentDate); d.setDate(currentDate.getDate() + delta); currentDate = d; refreshDayDisplay(); }
+    function goToToday() { currentDate = new Date(); refreshDayDisplay(); }
+    function setMode(mode) {
+        if (currentMode === mode) return;
+        currentMode = mode;
+        const newLen = mode === 4 ? 4 : 6;
+        const newPoints = new Array(newLen).fill("");
+        for (let i = 0; i < Math.min(pointsData.length, newLen); i++) newPoints[i] = pointsData[i] || "";
+        pointsData = newPoints;
+        updateUIModeSelection();
+        rebuildUIWithData();
+        autoSave();
+    }
+    function toggleHistoryPanel() { historyPanel.classList.toggle('open'); if (historyPanel.classList.contains('open')) renderHistoryTable(); }
+
+    window.excluirDiaHistorico = excluirDiaHistorico;
+
+    function init() {
+        loadHistory();
+        refreshDayDisplay();
+        resetAllBtn.addEventListener('click', limparCamposAtuais);
+        clearAllBtn.addEventListener('click', limparTudo);
+        agoraBtn.addEventListener('click', marcarProximoPonto);
+        previsaoAlmocoCard.addEventListener('click', aplicarPrevisaoAlmoco);
+        previsaoOitoCard.addEventListener('click', aplicarCompletar8h);
+        prevDayBtn.addEventListener('click', () => changeDay(-1));
+        nextDayBtn.addEventListener('click', () => changeDay(1));
+        todayBtn.addEventListener('click', goToToday);
+        mode4Btn.addEventListener('click', () => setMode(4));
+        mode6Btn.addEventListener('click', () => setMode(6));
+        historyBtn.addEventListener('click', toggleHistoryPanel);
+        closeHistoryBtn.addEventListener('click', toggleHistoryPanel);
+        exportCSVBtn.addEventListener('click', exportarCSV);
+        exportJSONBtn.addEventListener('click', exportarJSON);
+        exportPDFBtn.addEventListener('click', exportarPDF);
+    }
+    init();
+</script>
+</body>
+</html>
