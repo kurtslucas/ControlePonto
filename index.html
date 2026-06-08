@@ -138,7 +138,6 @@
             justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.9rem;
         }
 
-        /* Estilo para a documentação interna */
         .doc-section { margin-bottom: 16px; }
         .doc-section h3 { font-size: 1.05rem; margin-bottom: 4px; color: var(--primary); display: flex; align-items: center; gap: 6px; }
         .doc-section p { font-size: 0.9rem; color: var(--text-dark); margin-bottom: 4px; }
@@ -146,7 +145,7 @@
 
         @media print {
             body { background: white; padding: 0; color: black; }
-            .header, #registroCard, .toggle-hist-btn, .export-group, button, .modal-overlay { display: none !important; }
+            .header, #registroCard, .toggle-hist-btn, .export-group, button, .modal-overlay, #selectMesFiltro { display: none !important; }
             .card { box-shadow: none; border: none; padding: 0; margin: 0; display: block !important; }
             #historicoCard h2 { font-size: 1.8rem; text-align: center; margin-bottom: 20px; }
             table { border-collapse: collapse; width: 100%; min-width: auto; }
@@ -220,25 +219,29 @@
     <div class="card" id="historicoCard" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
             <h2 style="font-size: 1.3rem;">📅 Histórico e Banco de Horas</h2>
-            <div class="export-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            
+            <div class="export-group" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <select id="filtroMesAno" onchange="atualizarTabela()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border);"></select>
+                <span style="border-left: 1px solid var(--border); margin: 0 5px; height: 20px;"></span>
+
                 <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportarBackup()">💾 Backup</button>
                 <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="document.getElementById('importarBackup').click()">📂 Restaurar</button>
                 <input type="file" id="importarBackup" style="display: none;" accept=".json" onchange="importarBackup(event)">
                 
-                <span style="border-left: 1px solid var(--border); margin: 0 5px;"></span>
+                <span style="border-left: 1px solid var(--border); margin: 0 5px; height: 20px;"></span>
 
                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportarCSV()">📄 CSV</button>
                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportarJSON()">📋 JSON</button>
                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportarTXT()">📝 TXT</button>
                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportarPDF()">📑 PDF</button>
-                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;" onclick="limparTodoHistorico()">🗑️ Limpar Tudo</button>
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.85rem;" onclick="limparTodoHistorico()">🗑️ Limpar</button>
             </div>
         </div>
         
         <div class="summary-box" style="margin-bottom: 20px; background: #eff6ff; border-color: #bfdbfe; text-align: left; display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <div class="label" style="margin-bottom: 2px;">Saldo Acumulado Atual (Banco de Horas)</div>
-                <small style="color: var(--text-muted);">Inclui o saldo inicial configurado + histórico listado abaixo</small>
+                <small style="color: var(--text-muted);">Calculado em tempo real somando todo o passado.</small>
             </div>
             <div class="value" id="resSaldoAcumuladoGeral" style="font-size: 1.8rem;">--:--</div>
         </div>
@@ -269,56 +272,29 @@
 
     <div class="modal-overlay" id="modalConfig">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2>⚙️ Configurações</h2>
-                <button class="close-btn" onclick="fecharConfiguracoes()">×</button>
-            </div>
-            
-            <div class="settings-row">
-                <label>Carga Horária Diária (Dias de Semana)</label>
-                <input type="time" id="cfgCargaHoraria" value="08:00" style="width: 100%;">
-            </div>
-            
-            <div class="settings-row">
-                <label>Saldo Inicial de Horas (Meses Anteriores)</label>
+            <div class="modal-header"><h2>⚙️ Configurações</h2><button class="close-btn" onclick="fecharConfiguracoes()">×</button></div>
+            <div class="settings-row"><label>Carga Horária Diária (Dias de Semana)</label><input type="time" id="cfgCargaHoraria" value="08:00" style="width: 100%;"></div>
+            <div class="settings-row"><label>Saldo Inicial de Horas (Meses Anteriores)</label>
                 <div class="saldo-inputs">
-                    <select id="cfgSinalSaldo">
-                        <option value="+">Positivo (+)</option>
-                        <option value="-">Negativo (-)</option>
-                    </select>
-                    <input type="number" id="cfgSaldoInicialHoras" min="0" placeholder="Horas">
-                    <span>h</span>
-                    <input type="number" id="cfgSaldoInicialMinutos" min="0" max="59" placeholder="Min">
-                    <span>min</span>
+                    <select id="cfgSinalSaldo"><option value="+">Positivo (+)</option><option value="-">Negativo (-)</option></select>
+                    <input type="number" id="cfgSaldoInicialHoras" min="0" placeholder="Horas"><span>h</span>
+                    <input type="number" id="cfgSaldoInicialMinutos" min="0" max="59" placeholder="Min"><span>min</span>
                 </div>
                 <small style="color: var(--text-muted); display: block; margin-top: 6px;">Permite valores altos acumulados (ex: 50h, 120h).</small>
             </div>
-
             <button class="btn btn-primary" onclick="salvarConfiguracoes()" style="margin-top: 10px; width: 100%;">Salvar Configurações</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="modalAjuste">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2>⚖️ Adicionar Ajuste Manual</h2>
-                <button class="close-btn" onclick="fecharModalAjuste()">×</button>
-            </div>
-            <div class="settings-row">
-                <label>Descrição do Ajuste</label>
-                <input type="text" id="ajusteDesc" placeholder="Ex: Esquecimento, Atestado, Acerto RH..." style="width: 100%;">
-            </div>
-            <div class="settings-row">
-                <label>Valor do Ajuste</label>
+            <div class="modal-header"><h2>⚖️ Adicionar Ajuste Manual</h2><button class="close-btn" onclick="fecharModalAjuste()">×</button></div>
+            <div class="settings-row"><label>Descrição do Ajuste</label><input type="text" id="ajusteDesc" placeholder="Ex: Esquecimento, Atestado, Acerto RH..." style="width: 100%;"></div>
+            <div class="settings-row"><label>Valor do Ajuste</label>
                 <div class="saldo-inputs">
-                    <select id="ajusteSinal">
-                        <option value="+">Crédito (+)</option>
-                        <option value="-">Débito (-)</option>
-                    </select>
-                    <input type="number" id="ajusteHoras" min="0" placeholder="Horas">
-                    <span>h</span>
-                    <input type="number" id="ajusteMinutos" min="0" max="59" placeholder="Min">
-                    <span>min</span>
+                    <select id="ajusteSinal"><option value="+">Crédito (+)</option><option value="-">Débito (-)</option></select>
+                    <input type="number" id="ajusteHoras" min="0" placeholder="Horas"><span>h</span>
+                    <input type="number" id="ajusteMinutos" min="0" max="59" placeholder="Min"><span>min</span>
                 </div>
             </div>
             <button class="btn btn-primary" onclick="salvarAjusteManual()" style="margin-top: 10px; width: 100%;">Salvar Ajuste</button>
@@ -327,60 +303,12 @@
 
     <div class="modal-overlay" id="modalAjuda">
         <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
-            <div class="modal-header">
-                <h2>📖 Manual do Usuário</h2>
-                <button class="close-btn" onclick="fecharAjuda()">×</button>
-            </div>
-            
-            <div class="doc-section">
-                <h3>📌 1. Registrar os Horários</h3>
-                <p>Existem duas formas fáceis de monitorar o ponto:</p>
-                <ul>
-                    <li>Clique em <b>⏰ Marcar Próximo Ponto</b> para preencher o próximo campo livre com o horário exato de agora.</li>
-                    <li>Clique diretamente nas caixas de horário para digitar ou alterar um valor manualmente a qualquer momento.</li>
-                    <li>Alterne entre as abas <b>4 Pontos</b> (padrão) ou <b>6 Pontos</b> dependendo da sua necessidade diária.</li>
-                </ul>
-            </div>
-
-            <div class="doc-section">
-                <h3>⚖️ 2. Regra de Tolerância (±10 min)</h3>
-                <p>Para evitar pequenas variações diárias inconvenientes no Banco de Horas:</p>
-                <ul>
-                    <li>Se o saldo do seu dia for de até 10 minutos para mais (+10) ou 10 minutos para menos (-10) em relação à sua jornada padrão, o sistema irá considerá-lo como <b>neutralizado (00:00)</b>.</li>
-                    <li>Caso ultrapasse essa faixa, o valor total do saldo será computado integralmente no cálculo acumulado.</li>
-                </ul>
-            </div>
-
-            <div class="doc-section">
-                <h3>🔮 3. Previsões de Horário (Clique Rápido)</h3>
-                <p>O sistema faz projeções baseadas nas suas primeiras marcações do dia:</p>
-                <ul>
-                    <li><b>Volta do Almoço:</b> Estima um intervalo padrão de 1h30 a partir da sua Saída 1.</li>
-                    <li><b>Fim de Expediente:</b> Calcula a hora exata em que você completará sua carga horária diária esperada.</li>
-                    <li>💡 <b>Atalho:</b> Você pode clicar em cima dos cards de previsão para que o sistema preencha os formulários de entrada/saída automaticamente com esses horários sugeridos.</li>
-                </ul>
-            </div>
-
-            <div class="doc-section">
-                <h3>📊 4. Ajustes Manuais Avançados</h3>
-                <p>Faltou uma marcação por esquecimento ou ganhou um crédito/débito direto do RH?</p>
-                <ul>
-                    <li>Navegue até a data desejada e clique em <b>Ajuste Manual</b>.</li>
-                    <li>Selecione se o ajuste é um <b>Crédito (+)</b> ou um <b>Débito (-)</b>, informe as Horas e Minutos desejados e uma descrição.</li>
-                    <li>O ajuste afetará instantaneamente o saldo e o cálculo trabalhado daquele dia.</li>
-                </ul>
-            </div>
-
-            <div class="doc-section">
-                <h3>💾 5. Segurança dos Dados (Backup)</h3>
-                <p>Todos os seus dados são guardados de forma 100% privada e local no seu próprio navegador.</p>
-                <ul>
-                    <li><b>Importante:</b> Limpezas drásticas de cache ou histórico do navegador podem apagar o banco de dados local.</li>
-                    <li>Para proteção a longo prazo, use o botão <b>💾 Backup</b> no cabeçalho do histórico para baixar uma cópia de segurança.</li>
-                    <li>Se mudar de computador ou precisar recuperar dados, basta usar o botão <b>📂 Restaurar</b> e carregar o arquivo JSON.</li>
-                </ul>
-            </div>
-
+            <div class="modal-header"><h2>📖 Manual do Usuário</h2><button class="close-btn" onclick="fecharAjuda()">×</button></div>
+            <div class="doc-section"><h3>📌 1. Registrar os Horários</h3><p>Marque seus horários usando o botão automático ou clicando nas caixas de tempo.</p></div>
+            <div class="doc-section"><h3>⚖️ 2. Regra de Tolerância (±10 min)</h3><p>Se o saldo do seu dia for de até 10 minutos (positivos ou negativos) em relação à sua jornada padrão, o sistema irá considerá-lo como neutralizado (00:00).</p></div>
+            <div class="doc-section"><h3>🔮 3. Previsões e Cliques</h3><p>Clique nos quadros azuis de "Previsão Volta" ou "Fim Expediente" para preencher seu formulário automaticamente com o horário ideal.</p></div>
+            <div class="doc-section"><h3>📊 4. Ajustes Manuais Pós-Processados</h3><p>O ajuste manual afeta o saldo **após** o cálculo da tolerância. Se você obteve saldo 00:00 (por estar dentro dos 10 min) e adicionar um ajuste de +1 hora, o saldo final real do dia será exatamente de +1 hora.</p></div>
+            <div class="doc-section"><h3>💾 5. Backup e Performance</h3><p>Use o seletor de meses no histórico para manter a tela rápida. Baixe backups regularmente para não perder seus dados caso troque de navegador ou limpe os caches.</p></div>
             <button class="btn btn-primary" onclick="fecharAjuda()" style="margin-top: 10px; width: 100%;">Entendi, fechar manual</button>
         </div>
     </div>
@@ -407,17 +335,11 @@
             atualizarCalculosView(); atualizarTabela();
         }
 
-        function formatarDataISO(data) {
-            const d = new Date(data); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            return d.toISOString().split('T')[0];
-        }
-
+        // --- UTILITÁRIOS ---
+        function formatarDataISO(data) { const d = new Date(data); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; }
         function getHorarioAtualStr() { return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
-
-        function strParaMinutos(str) {
-            if (!str) return 0; const [h, m] = str.split(':').map(Number); return (h * 60) + m;
-        }
-
+        function strParaMinutos(str) { if (!str) return 0; const [h, m] = str.split(':').map(Number); return (h * 60) + m; }
+        
         function minutosParaStr(minGerais, forcarSinal = false) {
             const isNegativo = minGerais < 0; const minAbsoluto = Math.abs(minGerais);
             const h = Math.floor(minAbsoluto / 60).toString().padStart(2, '0');
@@ -437,35 +359,26 @@
             const data = new Date(partes[0], partes[1] - 1, partes[2]);
             return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][data.getDay()];
         }
+        function ehFimDeSemana(dataIso) { const dia = obterDiaSemana(dataIso); return dia === 'Sáb' || dia === 'Dom'; }
+        function minutesToDisplay(m) { return `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`; }
 
-        function ehFimDeSemana(dataIso) {
-            const dia = obterDiaSemana(dataIso); return dia === 'Sáb' || dia === 'Dom';
-        }
-
+        // --- NAVEGAÇÃO E UI DO DIA ---
         function mudarDia(delta) { dataAtualView.setDate(dataAtualView.getDate() + delta); atualizarViewData(); }
-        
         function irParaHoje() { dataAtualView = new Date(); atualizarViewData(); }
         
         function navegarParaDia(iso) {
-            const partes = iso.split('-');
-            dataAtualView = new Date(partes[0], partes[1] - 1, partes[2]);
-            atualizarViewData();
-            document.getElementById('registroCard').scrollIntoView({ behavior: 'smooth' });
+            const partes = iso.split('-'); dataAtualView = new Date(partes[0], partes[1] - 1, partes[2]);
+            atualizarViewData(); document.getElementById('registroCard').scrollIntoView({ behavior: 'smooth' });
         }
 
         function toggleHistorico() {
             const card = document.getElementById('historicoCard');
-            if (card.style.display === 'none') {
-                card.style.display = 'block';
-                card.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                card.style.display = 'none';
-            }
+            if (card.style.display === 'none') { card.style.display = 'block'; card.scrollIntoView({ behavior: 'smooth' }); } 
+            else { card.style.display = 'none'; }
         }
 
         function atualizarViewData() {
-            const iso = formatarDataISO(dataAtualView);
-            const hojeIso = formatarDataISO(new Date());
+            const iso = formatarDataISO(dataAtualView); const hojeIso = formatarDataISO(new Date());
             let textoDia = dataAtualView.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
             if (iso === hojeIso) textoDia = 'Hoje, ' + textoDia;
             document.getElementById('displayDataCorrente').innerText = textoDia;
@@ -476,44 +389,32 @@
 
         function mudarModo(modo) {
             appData.settings.modo = modo;
-            document.getElementById('tab4').classList.toggle('active', modo === 4);
-            document.getElementById('tab6').classList.toggle('active', modo === 6);
+            document.getElementById('tab4').classList.toggle('active', modo === 4); document.getElementById('tab6').classList.toggle('active', modo === 6);
             renderizarGridPontos(); preencherInputs(); salvarDados();
             document.querySelectorAll('.col-p5, .col-p6').forEach(el => el.style.display = modo === 6 ? 'table-cell' : 'none');
         }
 
         function renderizarGridPontos() {
-            const grid = document.getElementById('gridPontos');
-            const modo = appData.settings.modo; let html = '';
+            const grid = document.getElementById('gridPontos'); const modo = appData.settings.modo; let html = '';
             const labels = ['Entrada 1', 'Saída 1', 'Entrada 2', 'Saída 2', 'Entrada 3', 'Saída 3'];
-            for (let i = 0; i < modo; i++) {
-                html += `<div class="input-group"><label>${labels[i]}</label><input type="time" id="p${i}" onchange="registrarEdicaoManual(${i}, this.value)"></div>`;
-            }
+            for (let i = 0; i < modo; i++) html += `<div class="input-group"><label>${labels[i]}</label><input type="time" id="p${i}" onchange="registrarEdicaoManual(${i}, this.value)"></div>`;
             grid.innerHTML = html;
         }
 
         function preencherInputs() {
             const iso = formatarDataISO(dataAtualView); const registros = appData.records[iso] || ['', '', '', '', '', ''];
-            for (let i = 0; i < appData.settings.modo; i++) {
-                const input = document.getElementById(`p${i}`); if (input) input.value = registros[i] || '';
-            }
+            for (let i = 0; i < appData.settings.modo; i++) { const input = document.getElementById(`p${i}`); if (input) input.value = registros[i] || ''; }
         }
 
         function preencherPrevisao(tipo) {
-            const iso = formatarDataISO(dataAtualView);
-            if (!appData.records[iso]) return;
-
+            const iso = formatarDataISO(dataAtualView); if (!appData.records[iso]) return;
             if (tipo === 'volta') {
                 const volta = document.getElementById('resVoltaAlmoco').innerText;
-                if (volta !== '--:--') {
-                    appData.records[iso][2] = volta;
-                    salvarDados(); preencherInputs();
-                }
+                if (volta !== '--:--') { appData.records[iso][2] = volta; salvarDados(); preencherInputs(); }
             } else if (tipo === 'fim') {
                 const fim = document.getElementById('resFimExpediente').innerText;
                 if (fim !== '--:--' && !fim.includes('Livre')) {
-                    const index = appData.settings.modo === 4 ? 3 : 5;
-                    appData.records[iso][index] = fim;
+                    const index = appData.settings.modo === 4 ? 3 : 5; appData.records[iso][index] = fim;
                     salvarDados(); preencherInputs();
                 }
             }
@@ -521,85 +422,34 @@
 
         function marcarProximo() {
             const iso = formatarDataISO(dataAtualView); const registros = appData.records[iso];
-            for (let i = 0; i < appData.settings.modo; i++) {
-                if (!registros[i]) { registros[i] = getHorarioAtualStr(); salvarDados(); preencherInputs(); return; }
-            }
+            for (let i = 0; i < appData.settings.modo; i++) { if (!registros[i]) { registros[i] = getHorarioAtualStr(); salvarDados(); preencherInputs(); return; } }
             alert('Todos os pontos deste dia já foram marcados!');
         }
 
-        function registrarEdicaoManual(index, valor) {
-            appData.records[formatarDataISO(dataAtualView)][index] = valor; salvarDados();
-        }
+        function registrarEdicaoManual(index, valor) { appData.records[formatarDataISO(dataAtualView)][index] = valor; salvarDados(); }
 
         function limparDiaAtual() {
-            const iso = formatarDataISO(dataAtualView);
-            const dataBR = iso.split('-').reverse().join('/');
-            if (confirm(`Tem certeza que deseja limpar TODOS os registros do dia ${dataBR}?`)) {
-                delete appData.records[iso];
-                salvarDados(); atualizarViewData();
-            }
+            const iso = formatarDataISO(dataAtualView); const dataBR = iso.split('-').reverse().join('/');
+            if (confirm(`Tem certeza que deseja limpar TODOS os registros do dia ${dataBR}?`)) { delete appData.records[iso]; salvarDados(); atualizarViewData(); }
         }
 
-        // --- LÓGICA DE AJUSTE MANUAL (HORAS E MINUTOS) ---
-        function abrirModalAjuste() {
-            document.getElementById('ajusteDesc').value = '';
-            document.getElementById('ajusteSinal').value = '+';
-            document.getElementById('ajusteHoras').value = '';
-            document.getElementById('ajusteMinutos').value = '';
-            document.getElementById('modalAjuste').style.display = 'flex';
-        }
-
-        function fecharModalAjuste() {
-            document.getElementById('modalAjuste').style.display = 'none';
-        }
-
-        function salvarAjusteManual() {
-            const iso = formatarDataISO(dataAtualView);
-            const desc = document.getElementById('ajusteDesc').value || 'Ajuste Manual';
-            const sinal = document.getElementById('ajusteSinal').value;
-            const hrs = parseInt(document.getElementById('ajusteHoras').value) || 0;
-            const mins = parseInt(document.getElementById('ajusteMinutos').value) || 0;
-
-            // Transforma tudo para minutos para manter compatibilidade interna
-            let valTotalMinutos = (hrs * 60) + mins;
-            if (sinal === '-') valTotalMinutos = -valTotalMinutos;
-
-            if (valTotalMinutos === 0) return fecharModalAjuste();
-
-            if (!appData.records[iso]) appData.records[iso] = ['', '', '', '', '', ''];
-            if (!appData.records[iso][6]) appData.records[iso][6] = [];
-            
-            appData.records[iso][6].push({ desc, val: valTotalMinutos });
-            
-            fecharModalAjuste(); salvarDados(); atualizarViewData();
-        }
-
-        function removerAjuste(idx) {
-            const iso = formatarDataISO(dataAtualView);
-            if (appData.records[iso] && appData.records[iso][6]) {
-                appData.records[iso][6].splice(idx, 1);
-                salvarDados(); atualizarViewData();
-            }
-        }
-
-        // --- MODAL DE DOCUMENTAÇÃO/AJUDA ---
-        function abrirAjuda() { document.getElementById('modalAjuda').style.display = 'flex'; }
-        function fecharAjuda() { document.getElementById('modalAjuda').style.display = 'none'; }
-
-        function calcularDia(registros) {
+        // --- CÁLCULOS DIVIDIDOS (Trabalhado e Ajuste Manuais independentes) ---
+        function calcularTempoTrabalhado(registros) {
             let total = 0;
             if (registros[0] && registros[1]) total += strParaMinutos(registros[1]) - strParaMinutos(registros[0]);
             if (registros[2] && registros[3]) total += strParaMinutos(registros[3]) - strParaMinutos(registros[2]);
             if (appData.settings.modo === 6 && registros[4] && registros[5]) total += strParaMinutos(registros[5]) - strParaMinutos(registros[4]);
-            
-            if (registros[6] && Array.isArray(registros[6])) {
-                registros[6].forEach(a => total += a.val);
-            }
             return total; 
         }
 
+        function calcularAjustes(registros) {
+            let total = 0;
+            if (registros[6] && Array.isArray(registros[6])) registros[6].forEach(a => total += a.val);
+            return total;
+        }
+
         function aplicarTolerancia(totalTrabalhado, cargaHoraria) {
-            if (cargaHoraria === 0) return 0;
+            if (cargaHoraria === 0) return totalTrabalhado; // FDS ganha 100% de hora
             const diferenca = totalTrabalhado - cargaHoraria;
             if (diferenca >= -10 && diferenca <= 10) return 0;
             return diferenca;
@@ -609,42 +459,35 @@
             const iso = formatarDataISO(dataAtualView); const registros = appData.records[iso] || ['', '', '', '', '', ''];
             const fds = ehFimDeSemana(iso); const cargaHorariaDoDia = fds ? 0 : appData.settings.cargaDiaria;
             
-            const divAjustes = document.getElementById('listaAjustesHoje');
-            divAjustes.innerHTML = '';
+            const divAjustes = document.getElementById('listaAjustesHoje'); divAjustes.innerHTML = '';
             if (registros[6] && registros[6].length > 0) {
                 registros[6].forEach((ajuste, idx) => {
                     const valFormatado = minutosParaStr(ajuste.val, true);
                     const corBadge = ajuste.val > 0 ? 'color: #065f46; background: #d1fae5;' : 'color: #991b1b; background: #fee2e2;';
-                    divAjustes.innerHTML += `
-                        <div class="ajuste-item">
-                            <span>⚖️ ${ajuste.desc} <span style="font-weight: 600; padding: 2px 6px; border-radius: 4px; ${corBadge}">${valFormatado} h</span></span>
-                            <button onclick="removerAjuste(${idx})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold; font-size: 1.1rem;" title="Remover Ajuste">×</button>
-                        </div>
-                    `;
+                    divAjustes.innerHTML += `<div class="ajuste-item"><span>⚖️ ${ajuste.desc} <span style="font-weight: 600; padding: 2px 6px; border-radius: 4px; ${corBadge}">${valFormatado} h</span></span><button onclick="removerAjuste(${idx})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold; font-size: 1.1rem;" title="Remover Ajuste">×</button></div>`;
                 });
             }
 
             if (fds) {
-                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia (FDS Livre)";
-                document.getElementById('labelFimExpediente').innerText = "Horas Extras no FDS";
+                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia (FDS Livre)"; document.getElementById('labelFimExpediente').innerText = "Horas Extras no FDS";
             } else {
-                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia";
-                document.getElementById('labelFimExpediente').innerText = "Fim de Expediente 👆";
+                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia"; document.getElementById('labelFimExpediente').innerText = "Fim de Expediente 👆";
             }
 
-            const totalTrabalhado = calcularDia(registros);
-            const totalDisplay = totalTrabalhado > 0 ? totalTrabalhado : 0;
-            document.getElementById('resTotalHoje').innerText = minutesToDisplay(totalDisplay);
+            const tempoTrabalhado = calcularTempoTrabalhado(registros);
+            const totalAjuste = calcularAjustes(registros);
+            
+            document.getElementById('resTotalHoje').innerText = minutesToDisplay(tempoTrabalhado > 0 ? tempoTrabalhado : 0);
             
             let saldoDia = 0;
-            if (totalTrabalhado !== 0 || (registros[6] && registros[6].length > 0)) {
-                saldoDia = aplicarTolerancia(totalTrabalhado, cargaHorariaDoDia);
+            if (tempoTrabalhado !== 0 || totalAjuste !== 0) {
+                // AQUI ESTÁ A MÁGICA: Calcula a tolerância apenas do tempo trabalhado, E DEPOIS soma o ajuste manual.
+                saldoDia = aplicarTolerancia(tempoTrabalhado, cargaHorariaDoDia) + totalAjuste;
             }
             
-            document.getElementById('resSaldoHoje').innerHTML = (totalTrabalhado !== 0 || saldoDia !== 0) ? formatarBadgeSaldo(saldoDia) : '<span class="badge neutral">--:--</span>';
+            document.getElementById('resSaldoHoje').innerHTML = (tempoTrabalhado !== 0 || saldoDia !== 0) ? formatarBadgeSaldo(saldoDia) : '<span class="badge neutral">--:--</span>';
 
             let voltaAlmoco = '--:--'; let fimExpediente = '--:--';
-
             if (registros[0] && registros[1] && !registros[2]) voltaAlmoco = minutosParaStr(strParaMinutos(registros[1]) + 90);
             
             if (registros[0]) {
@@ -659,54 +502,108 @@
                     }
                 }
             }
-            document.getElementById('resVoltaAlmoco').innerText = voltaAlmoco;
-            document.getElementById('resFimExpediente').innerText = fimExpediente;
+            document.getElementById('resVoltaAlmoco').innerText = voltaAlmoco; document.getElementById('resFimExpediente').innerText = fimExpediente;
         }
 
-        function minutesToDisplay(m) {
-            return `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
+        // --- FILTRO E TABELA DO HISTÓRICO ---
+        function atualizarFiltroMeses(datasValidas) {
+            const select = document.getElementById('filtroMesAno');
+            const valorAtual = select.value;
+            const mesesSet = new Set();
+            
+            datasValidas.forEach(iso => mesesSet.add(iso.substring(0, 7))); // Adiciona o ano e mês (ex: 2026-06)
+            
+            const mesesArr = Array.from(mesesSet).sort().reverse();
+            select.innerHTML = '<option value="todos">Todos os Meses</option>';
+            
+            mesesArr.forEach(ma => {
+                const [ano, mes] = ma.split('-');
+                const nomeMes = new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+                const option = document.createElement('option');
+                option.value = ma; option.text = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1) + ' ' + ano;
+                select.add(option);
+            });
+
+            if (mesesArr.includes(valorAtual)) { select.value = valorAtual; } 
+            else if (mesesArr.length > 0) { select.value = mesesArr[0]; } // Seleciona o mês atual por padrão
         }
 
         function atualizarTabela() {
             const tbody = document.getElementById('tabelaHistorico'); tbody.innerHTML = '';
-            const datas = Object.keys(appData.records).filter(iso => appData.records[iso].some(v => v !== '' || (Array.isArray(v) && v.length > 0))).sort();
             
-            if (datas.length === 0) { tbody.innerHTML = `<tr><td colspan="11">Nenhum registro encontrado.</td></tr>`; return; }
+            // Só considera dias que possuem batidas ou ajustes
+            const datasAll = Object.keys(appData.records).filter(iso => {
+                const r = appData.records[iso];
+                return r.some((v, i) => i < 6 && v !== '') || (r[6] && r[6].length > 0);
+            }).sort();
+            
+            if (datasAll.length === 0) { tbody.innerHTML = `<tr><td colspan="11">Nenhum registro encontrado.</td></tr>`; return; }
+
+            // Atualiza o seletor visual no cabeçalho
+            atualizarFiltroMeses(datasAll);
+            const filtroSelecionado = document.getElementById('filtroMesAno').value;
 
             let acumulado = appData.settings.saldoInicialMinutos;
 
-            datas.forEach(iso => {
-                const regs = appData.records[iso]; const totalMin = calcularDia(regs);
+            datasAll.forEach(iso => {
+                const regs = appData.records[iso]; 
+                const trabMin = calcularTempoTrabalhado(regs);
+                const ajusteMin = calcularAjustes(regs);
                 const fds = ehFimDeSemana(iso); const cargaHorariaDoDia = fds ? 0 : appData.settings.cargaDiaria;
                 
                 let saldoDia = 0;
-                if (totalMin !== 0 || (regs[6] && regs[6].length > 0)) { 
-                    saldoDia = aplicarTolerancia(totalMin, cargaHorariaDoDia); 
+                // Cálculo 100% sequencial: Trabalhado (c/ Tolerância) + Ajuste
+                if (trabMin !== 0 || ajusteMin !== 0) { 
+                    saldoDia = aplicarTolerancia(trabMin, cargaHorariaDoDia) + ajusteMin; 
                     acumulado += saldoDia; 
                 }
 
-                const tr = document.createElement('tr');
-                tr.className = 'clickable-row';
-                tr.onclick = () => navegarParaDia(iso);
-                tr.title = "Clique para editar este dia";
-                if (fds) tr.style.background = "#f8fafc";
+                // Renderização Otimizada: Só desenha na tela se pertencer ao mês escolhido
+                if (filtroSelecionado === 'todos' || iso.startsWith(filtroSelecionado)) {
+                    const tr = document.createElement('tr'); tr.className = 'clickable-row'; tr.onclick = () => navegarParaDia(iso); tr.title = "Clique para editar este dia";
+                    if (fds) tr.style.background = "#f8fafc";
+                    const ajustesIcon = ajusteMin !== 0 ? ' ⚖️' : '';
 
-                const ajustesIcon = (regs[6] && regs[6].length > 0) ? ' ⚖️' : '';
-
-                tr.innerHTML = `
-                    <td><strong>${iso.split('-').reverse().join('/')}</strong></td>
-                    <td>${obterDiaSemana(iso)}${fds ? ' 🏖️' : ''}</td>
-                    <td>${regs[0] || '-'}</td><td>${regs[1] || '-'}</td><td>${regs[2] || '-'}</td><td>${regs[3] || '-'}</td>
-                    <td class="col-p5" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[4] || '-'}</td>
-                    <td class="col-p6" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[5] || '-'}</td>
-                    <td><b>${totalMin > 0 ? minutosParaStr(totalMin) : '-'}${ajustesIcon}</b></td>
-                    <td>${(totalMin !== 0 || saldoDia !== 0) ? formatarBadgeSaldo(saldoDia) : '-'}</td>
-                    <td>${formatarBadgeSaldo(acumulado)}</td>
-                `;
-                tbody.prepend(tr);
+                    tr.innerHTML = `
+                        <td><strong>${iso.split('-').reverse().join('/')}</strong></td>
+                        <td>${obterDiaSemana(iso)}${fds ? ' 🏖️' : ''}</td>
+                        <td>${regs[0] || '-'}</td><td>${regs[1] || '-'}</td><td>${regs[2] || '-'}</td><td>${regs[3] || '-'}</td>
+                        <td class="col-p5" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[4] || '-'}</td>
+                        <td class="col-p6" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[5] || '-'}</td>
+                        <td><b>${trabMin > 0 ? minutosParaStr(trabMin) : '-'}${ajustesIcon}</b></td>
+                        <td>${(trabMin !== 0 || saldoDia !== 0) ? formatarBadgeSaldo(saldoDia) : '-'}</td>
+                        <td>${formatarBadgeSaldo(acumulado)}</td>
+                    `;
+                    tbody.prepend(tr);
+                }
             });
             document.getElementById('resSaldoAcumuladoGeral').innerHTML = formatarBadgeSaldo(acumulado);
         }
+
+        // --- MODAIS (Ajuste, Config, Ajuda) ---
+        function abrirModalAjuste() {
+            document.getElementById('ajusteDesc').value = ''; document.getElementById('ajusteSinal').value = '+';
+            document.getElementById('ajusteHoras').value = ''; document.getElementById('ajusteMinutos').value = '';
+            document.getElementById('modalAjuste').style.display = 'flex';
+        }
+        function fecharModalAjuste() { document.getElementById('modalAjuste').style.display = 'none'; }
+        
+        function salvarAjusteManual() {
+            const iso = formatarDataISO(dataAtualView); const desc = document.getElementById('ajusteDesc').value || 'Ajuste Manual';
+            const sinal = document.getElementById('ajusteSinal').value;
+            let valTotalMinutos = ((parseInt(document.getElementById('ajusteHoras').value) || 0) * 60) + (parseInt(document.getElementById('ajusteMinutos').value) || 0);
+            if (sinal === '-') valTotalMinutos = -valTotalMinutos;
+            if (valTotalMinutos === 0) return fecharModalAjuste();
+            
+            if (!appData.records[iso]) appData.records[iso] = ['', '', '', '', '', ''];
+            if (!appData.records[iso][6]) appData.records[iso][6] = [];
+            appData.records[iso][6].push({ desc, val: valTotalMinutos });
+            
+            fecharModalAjuste(); salvarDados(); atualizarViewData();
+        }
+        function removerAjuste(idx) { const iso = formatarDataISO(dataAtualView); if (appData.records[iso] && appData.records[iso][6]) { appData.records[iso][6].splice(idx, 1); salvarDados(); atualizarViewData(); } }
+        function abrirAjuda() { document.getElementById('modalAjuda').style.display = 'flex'; }
+        function fecharAjuda() { document.getElementById('modalAjuda').style.display = 'none'; }
 
         function abrirConfiguracoes() {
             document.getElementById('cfgCargaHoraria').value = minutosParaStr(appData.settings.cargaDiaria);
@@ -716,158 +613,91 @@
             document.getElementById('cfgSaldoInicialMinutos').value = totalMinutosAbs % 60 || 0;
             document.getElementById('modalConfig').style.display = 'flex';
         }
-
         function fecharConfiguracoes() { document.getElementById('modalConfig').style.display = 'none'; }
-
         function salvarConfiguracoes() {
-            const cargaInput = document.getElementById('cfgCargaHoraria').value;
-            const sinal = document.getElementById('cfgSinalSaldo').value;
-            const hrsInput = parseInt(document.getElementById('cfgSaldoInicialHoras').value) || 0;
-            const minsInput = parseInt(document.getElementById('cfgSaldoInicialMinutos').value) || 0;
-
-            appData.settings.cargaDiaria = strParaMinutos(cargaInput);
-            let saldoMin = (hrsInput * 60) + minsInput;
-            appData.settings.saldoInicialMinutos = sinal === '-' ? -Math.abs(saldoMin) : saldoMin;
-
+            appData.settings.cargaDiaria = strParaMinutos(document.getElementById('cfgCargaHoraria').value);
+            let saldoMin = ((parseInt(document.getElementById('cfgSaldoInicialHoras').value) || 0) * 60) + (parseInt(document.getElementById('cfgSaldoInicialMinutos').value) || 0);
+            appData.settings.saldoInicialMinutos = document.getElementById('cfgSinalSaldo').value === '-' ? -Math.abs(saldoMin) : saldoMin;
             salvarDados(); fecharConfiguracoes();
         }
 
-        function limparTodoHistorico() {
-            if (confirm("ATENÇÃO: Deseja apagar TODO o histórico permanentemente?")) {
-                appData.records = {}; salvarDados(); atualizarViewData();
-            }
-        }
-
-        // --- SISTEMA DE EXPORTAÇÃO E BACKUP ---
+        // --- EXPORTAÇÃO E BACKUP ---
         function baixarArquivo(conteudo, mimeType, nomeArquivo) {
-            const blob = new Blob([conteudo], { type: mimeType });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", nomeArquivo);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([conteudo], { type: mimeType }));
+            link.download = nomeArquivo; link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
-
-        function exportarBackup() {
-            const dataStr = JSON.stringify(appData);
-            baixarArquivo(dataStr, 'application/json', 'ponto_facil_backup.json');
-        }
-
+        function exportarBackup() { baixarArquivo(JSON.stringify(appData), 'application/json', 'ponto_facil_backup.json'); }
         function importarBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
+            const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    if (importedData && importedData.settings && importedData.records) {
-                        appData = importedData;
-                        salvarDados();
-                        alert('Backup restaurado com sucesso!');
-                        location.reload();
-                    } else { alert('Arquivo de backup inválido.'); }
+                    if (importedData && importedData.settings && importedData.records) { appData = importedData; salvarDados(); location.reload(); }
                 } catch(err) { alert('Erro ao ler o arquivo.'); }
-            };
-            reader.readAsText(file);
+            }; reader.readAsText(file);
         }
 
-        function getDatasComMarcacao() {
-            return Object.keys(appData.records).filter(iso => appData.records[iso].some(v => v !== '' || (Array.isArray(v) && v.length > 0))).sort();
-        }
+        function getDatasComMarcacao() { return Object.keys(appData.records).filter(iso => { const r = appData.records[iso]; return r.some((v,i) => i<6 && v!=='') || (r[6] && r[6].length > 0); }).sort(); }
 
         function exportarCSV() {
-            let csv = "Data;Dia;Entrada 1;Saida 1;Entrada 2;Saida 2;Entrada 3;Saida 3;Total;Saldo;Acumulado\n";
+            let csv = "Data;Dia;Entrada 1;Saida 1;Entrada 2;Saida 2;Entrada 3;Saida 3;Total Trab;Saldo;Acumulado\n";
             let acumulado = appData.settings.saldoInicialMinutos;
-
             getDatasComMarcacao().forEach(iso => {
-                const regs = appData.records[iso]; const total = calcularDia(regs);
+                const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
                 const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
                 let saldoStr = ""; let totalStr = "";
                 
-                if (total !== 0 || (regs[6] && regs[6].length > 0)) {
-                    const saldoDia = aplicarTolerancia(total, carga);
-                    saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(total);
+                if (trabMin !== 0 || ajusteMin !== 0) {
+                    const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia;
+                    saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(trabMin);
                 }
-
-                const dataBR = iso.split('-').reverse().join('/');
-                const diaSem = obterDiaSemana(iso) + (fds ? " (FDS)" : "");
-                csv += `${dataBR};${diaSem};${regs[0]||''};${regs[1]||''};${regs[2]||''};${regs[3]||''};${regs[4]||''};${regs[5]||''};${totalStr};${saldoStr};${minutosParaStr(acumulado, true)}\n`;
+                csv += `${iso.split('-').reverse().join('/')};${obterDiaSemana(iso) + (fds ? " (FDS)" : "")};${regs[0]||''};${regs[1]||''};${regs[2]||''};${regs[3]||''};${regs[4]||''};${regs[5]||''};${totalStr};${saldoStr};${minutosParaStr(acumulado, true)}\n`;
             });
             baixarArquivo(csv, 'text/csv;charset=utf-8;', 'historico_ponto.csv');
         }
 
         function exportarJSON() {
-            let dadosProcessados = {
-                configuracoes: {
-                    cargaHorariaBaseMinutos: appData.settings.cargaDiaria,
-                    saldoInicialMinutos: appData.settings.saldoInicialMinutos,
-                    saldoInicialFormatado: minutosParaStr(appData.settings.saldoInicialMinutos, true)
-                },
-                historico: []
-            };
-            
+            let dadosProcessados = { configuracoes: { cargaHorariaBaseMinutos: appData.settings.cargaDiaria, saldoInicialMinutos: appData.settings.saldoInicialMinutos, saldoInicialFormatado: minutosParaStr(appData.settings.saldoInicialMinutos, true) }, historico: [] };
             let acumulado = appData.settings.saldoInicialMinutos;
-
             getDatasComMarcacao().forEach(iso => {
-                const regs = appData.records[iso]; const total = calcularDia(regs);
+                const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
                 const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
-                
-                let saldoDia = 0;
-                if (total !== 0 || (regs[6] && regs[6].length > 0)) {
-                    saldoDia = aplicarTolerancia(total, carga);
-                    acumulado += saldoDia;
-                }
-
+                let saldoDia = 0; if (trabMin !== 0 || ajusteMin !== 0) { saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia; }
                 dadosProcessados.historico.push({
-                    dataISO: iso, dataBR: iso.split('-').reverse().join('/'),
-                    diaSemana: obterDiaSemana(iso), fimDeSemana: fds,
+                    dataISO: iso, dataBR: iso.split('-').reverse().join('/'), diaSemana: obterDiaSemana(iso), fimDeSemana: fds,
                     marcacoes: { entrada1: regs[0] || "", saida1: regs[1] || "", entrada2: regs[2] || "", saida2: regs[3] || "", entrada3: regs[4] || "", saida3: regs[5] || "" },
-                    ajustesManuais: regs[6] || [],
-                    totalTrabalhadoMinutos: total, totalTrabalhadoFormatado: total > 0 ? minutosParaStr(total) : "00:00",
-                    saldoDiaMinutos: saldoDia, saldoDiaFormatado: (total !== 0 || saldoDia !== 0) ? minutosParaStr(saldoDia, true) : "00:00",
-                    saldoAcumuladoNesteDiaMinutos: acumulado, saldoAcumuladoNesteDiaFormatado: minutosParaStr(acumulado, true)
+                    ajustesManuais: regs[6] || [], totalTrabalhadoFormatado: trabMin > 0 ? minutosParaStr(trabMin) : "00:00",
+                    saldoDiaFormatado: (trabMin !== 0 || saldoDia !== 0) ? minutosParaStr(saldoDia, true) : "00:00", saldoAcumuladoFormatado: minutosParaStr(acumulado, true)
                 });
             });
-
-            const json = JSON.stringify(dadosProcessados, null, 2);
-            baixarArquivo(json, 'application/json', 'historico_ponto_processado.json');
+            baixarArquivo(JSON.stringify(dadosProcessados, null, 2), 'application/json', 'historico_ponto_processado.json');
         }
 
         function exportarTXT() {
             let txt = "========== RELATÓRIO DE PONTO ==========\n\n";
             let acumulado = appData.settings.saldoInicialMinutos;
-            txt += `Saldo Inicial Base: ${minutosParaStr(acumulado, true)}\n`;
-            txt += `Carga Horária Base: ${minutosParaStr(appData.settings.cargaDiaria)}\n\n`;
-
+            txt += `Saldo Inicial Base: ${minutosParaStr(acumulado, true)}\nCarga Horária Base: ${minutosParaStr(appData.settings.cargaDiaria)}\n\n`;
             getDatasComMarcacao().forEach(iso => {
-                const regs = appData.records[iso]; const total = calcularDia(regs);
+                const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
                 const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
                 let saldoStr = "00:00"; let totalStr = "00:00";
                 
-                if (total !== 0 || (regs[6] && regs[6].length > 0)) {
-                    const saldoDia = aplicarTolerancia(total, carga);
-                    saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(total);
+                if (trabMin !== 0 || ajusteMin !== 0) {
+                    const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia;
+                    saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(trabMin);
                 }
-
-                const dataBR = iso.split('-').reverse().join('/');
-                const diaSem = obterDiaSemana(iso) + (fds ? " (Fim de Semana)" : "");
                 const marcacoes = regs.slice(0,6).filter(r => r !== '').join(' às ');
-                
-                let textoAjustes = "";
-                if(regs[6] && regs[6].length > 0) {
-                    textoAjustes = " | Ajustes: " + regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(', ');
-                }
+                let txtAjustes = ""; if(regs[6] && regs[6].length > 0) txtAjustes = " | Ajustes: " + regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(', ');
 
-                txt += `Data: ${dataBR} - ${diaSem}\n`;
-                txt += `Marcações: ${marcacoes || 'Sem marcações'}${textoAjustes}\n`;
-                txt += `Total Trabalhado: ${totalStr} | Saldo do Dia: ${saldoStr} | Saldo Acumulado: ${minutosParaStr(acumulado, true)}\n`;
+                txt += `Data: ${iso.split('-').reverse().join('/')} - ${obterDiaSemana(iso) + (fds ? " (Fim de Semana)" : "")}\n`;
+                txt += `Marcações: ${marcacoes || 'Sem marcações'}${txtAjustes}\n`;
+                txt += `Trabalhado: ${totalStr} | Saldo do Dia: ${saldoStr} | Saldo Acumulado: ${minutosParaStr(acumulado, true)}\n`;
                 txt += "--------------------------------------------------------\n";
             });
             baixarArquivo(txt, 'text/plain;charset=utf-8;', 'historico_ponto.txt');
         }
 
+        function limparTodoHistorico() { if (confirm("ATENÇÃO: Deseja apagar TODO o histórico permanentemente?")) { appData.records = {}; salvarDados(); atualizarViewData(); } }
         function exportarPDF() { window.print(); }
 
         window.onload = init;
