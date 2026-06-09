@@ -74,9 +74,17 @@
         .input-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
         .input-group input {
             padding: 12px; border: 1px solid var(--border); border-radius: 8px;
-            font-size: 1.2rem; text-align: center; color: var(--text-dark); transition: border-color 0.2s;
+            font-size: 1.2rem; text-align: center; color: var(--text-dark); transition: border-color 0.2s; width: 100%;
         }
         .input-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+        /* Estilo do Alerta de Limite de 6 horas */
+        .alert-warning {
+            background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
+            border-radius: 8px; padding: 12px; text-align: center;
+            font-size: 0.95rem; font-weight: 500; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
 
         .action-row { display: flex; gap: 10px; margin-bottom: 20px; }
 
@@ -143,9 +151,25 @@
         .doc-section p { font-size: 0.9rem; color: var(--text-dark); margin-bottom: 4px; }
         .doc-section ul { padding-left: 20px; font-size: 0.85rem; color: var(--text-muted); }
 
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .card { padding: 16px; }
+            .header h1 { font-size: 1.3rem; }
+            .points-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .input-group input { padding: 10px 5px; font-size: 1.05rem; }
+            .summary-boxes { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .summary-box { padding: 12px 8px; }
+            .summary-box .value { font-size: 1.3rem; }
+            .summary-box .label { font-size: 0.75rem; }
+            .date-navigator > button { padding: 5px 12px; }
+            .action-row { flex-wrap: wrap; gap: 8px; }
+            .action-row > button { flex: 1 1 100%; padding: 12px; }
+            .modal-content { padding: 20px; }
+        }
+
         @media print {
             body { background: white; padding: 0; color: black; }
-            .header, #registroCard, .toggle-hist-btn, .export-group, button, .modal-overlay, #selectMesFiltro { display: none !important; }
+            .header, #registroCard, .toggle-hist-btn, .export-group, button, .modal-overlay, #selectMesFiltro, .alert-warning { display: none !important; }
             .card { box-shadow: none; border: none; padding: 0; margin: 0; display: block !important; }
             #historicoCard h2 { font-size: 1.8rem; text-align: center; margin-bottom: 20px; }
             table { border-collapse: collapse; width: 100%; min-width: auto; }
@@ -180,12 +204,15 @@
             <div class="tab" id="tab6" onclick="mudarModo(6)">⏲️ 6 Pontos</div>
         </div>
 
+        <!-- DIV DINÂMICA DO ALERTA CLT 6 HORAS -->
+        <div id="containerAlertaClt"></div>
+
         <div class="points-grid" id="gridPontos"></div>
 
         <div class="action-row">
             <button class="btn btn-primary" style="flex: 2;" onclick="marcarProximo()">⏰ Marcar Próximo Ponto</button>
             <button class="btn btn-secondary" style="flex: 1;" onclick="abrirModalAjuste()">⚖️ Ajuste Manual</button>
-            <button class="btn btn-danger" style="padding: 12px 18px;" onclick="limparDiaAtual()" title="Limpar todos os registros deste dia">🗑️ Limpar Dia</button>
+            <button class="btn btn-danger" style="flex: 1;" onclick="limparDiaAtual()" title="Limpar todos os registros deste dia">🗑️ Limpar Dia</button>
         </div>
 
         <div id="listaAjustesHoje" style="margin-bottom: 15px;"></div>
@@ -314,7 +341,6 @@
     </div>
 
     <script>
-        // --- ESTADO DA APLICAÇÃO ---
         let appData = { settings: { modo: 4, cargaDiaria: 480, saldoInicialMinutos: 0 }, records: {} };
         let dataAtualView = new Date();
 
@@ -335,7 +361,6 @@
             atualizarCalculosView(); atualizarTabela();
         }
 
-        // --- UTILITÁRIOS ---
         function formatarDataISO(data) { const d = new Date(data); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().split('T')[0]; }
         function getHorarioAtualStr() { return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
         function strParaMinutos(str) { if (!str) return 0; const [h, m] = str.split(':').map(Number); return (h * 60) + m; }
@@ -362,7 +387,6 @@
         function ehFimDeSemana(dataIso) { const dia = obterDiaSemana(dataIso); return dia === 'Sáb' || dia === 'Dom'; }
         function minutesToDisplay(m) { return `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`; }
 
-        // --- NAVEGAÇÃO E UI DO DIA ---
         function mudarDia(delta) { dataAtualView.setDate(dataAtualView.getDate() + delta); atualizarViewData(); }
         function irParaHoje() { dataAtualView = new Date(); atualizarViewData(); }
         
@@ -433,7 +457,6 @@
             if (confirm(`Tem certeza que deseja limpar TODOS os registros do dia ${dataBR}?`)) { delete appData.records[iso]; salvarDados(); atualizarViewData(); }
         }
 
-        // --- CÁLCULOS DIVIDIDOS (Trabalhado e Ajuste Manuais independentes) ---
         function calcularTempoTrabalhado(registros) {
             let total = 0;
             if (registros[0] && registros[1]) total += strParaMinutos(registros[1]) - strParaMinutos(registros[0]);
@@ -449,7 +472,7 @@
         }
 
         function aplicarTolerancia(totalTrabalhado, cargaHoraria) {
-            if (cargaHoraria === 0) return totalTrabalhado; // FDS ganha 100% de hora
+            if (cargaHoraria === 0) return totalTrabalhado; 
             const diferenca = totalTrabalhado - cargaHoraria;
             if (diferenca >= -10 && diferenca <= 10) return 0;
             return diferenca;
@@ -481,11 +504,33 @@
             
             let saldoDia = 0;
             if (tempoTrabalhado !== 0 || totalAjuste !== 0) {
-                // AQUI ESTÁ A MÁGICA: Calcula a tolerância apenas do tempo trabalhado, E DEPOIS soma o ajuste manual.
                 saldoDia = aplicarTolerancia(tempoTrabalhado, cargaHorariaDoDia) + totalAjuste;
             }
             
             document.getElementById('resSaldoHoje').innerHTML = (tempoTrabalhado !== 0 || saldoDia !== 0) ? formatarBadgeSaldo(saldoDia) : '<span class="badge neutral">--:--</span>';
+
+            // --- LÓGICA DO NOVO ALERTA DATIVO CLT 6H ---
+            let alertaCltHtml = '';
+            let minutosReferencia = 0;
+            let tipoTurno = '';
+
+            if (registros[0] && !registros[1]) {
+                minutosReferencia = strParaMinutos(registros[0]);
+                tipoTurno = 'ir para o intervalo';
+            } else if (registros[2] && !registros[3]) {
+                minutosReferencia = strParaMinutos(registros[2]);
+                tipoTurno = 'bater a saída';
+            } else if (appData.settings.modo === 6 && registros[4] && !registros[5]) {
+                minutosReferencia = strParaMinutos(registros[4]);
+                tipoTurno = 'bater a saída';
+            }
+
+            if (minutosReferencia > 0) {
+                const limiteMinutos = minutosReferencia + 360; // Soma exatamente 6 horas (360 minutos)
+                const horaLimiteStr = minutosParaStr(limiteMinutos);
+                alertaCltHtml = `<div class="alert-warning">⚠️ <strong>Aviso CLT:</strong> Você deve ${tipoTurno} até às <strong>${horaLimiteStr}</strong> para não exceder 6h consecutivas de trabalho.</div>`;
+            }
+            document.getElementById('containerAlertaClt').innerHTML = alertaCltHtml;
 
             let voltaAlmoco = '--:--'; let fimExpediente = '--:--';
             if (registros[0] && registros[1] && !registros[2]) voltaAlmoco = minutosParaStr(strParaMinutos(registros[1]) + 90);
@@ -505,13 +550,12 @@
             document.getElementById('resVoltaAlmoco').innerText = voltaAlmoco; document.getElementById('resFimExpediente').innerText = fimExpediente;
         }
 
-        // --- FILTRO E TABELA DO HISTÓRICO ---
         function atualizarFiltroMeses(datasValidas) {
             const select = document.getElementById('filtroMesAno');
             const valorAtual = select.value;
             const mesesSet = new Set();
             
-            datasValidas.forEach(iso => mesesSet.add(iso.substring(0, 7))); // Adiciona o ano e mês (ex: 2026-06)
+            datasValidas.forEach(iso => mesesSet.add(iso.substring(0, 7)));
             
             const mesesArr = Array.from(mesesSet).sort().reverse();
             select.innerHTML = '<option value="todos">Todos os Meses</option>';
@@ -525,13 +569,12 @@
             });
 
             if (mesesArr.includes(valorAtual)) { select.value = valorAtual; } 
-            else if (mesesArr.length > 0) { select.value = mesesArr[0]; } // Seleciona o mês atual por padrão
+            else if (mesesArr.length > 0) { select.value = mesesArr[0]; }
         }
 
         function atualizarTabela() {
             const tbody = document.getElementById('tabelaHistorico'); tbody.innerHTML = '';
             
-            // Só considera dias que possuem batidas ou ajustes
             const datasAll = Object.keys(appData.records).filter(iso => {
                 const r = appData.records[iso];
                 return r.some((v, i) => i < 6 && v !== '') || (r[6] && r[6].length > 0);
@@ -539,7 +582,6 @@
             
             if (datasAll.length === 0) { tbody.innerHTML = `<tr><td colspan="11">Nenhum registro encontrado.</td></tr>`; return; }
 
-            // Atualiza o seletor visual no cabeçalho
             atualizarFiltroMeses(datasAll);
             const filtroSelecionado = document.getElementById('filtroMesAno').value;
 
@@ -552,13 +594,11 @@
                 const fds = ehFimDeSemana(iso); const cargaHorariaDoDia = fds ? 0 : appData.settings.cargaDiaria;
                 
                 let saldoDia = 0;
-                // Cálculo 100% sequencial: Trabalhado (c/ Tolerância) + Ajuste
                 if (trabMin !== 0 || ajusteMin !== 0) { 
                     saldoDia = aplicarTolerancia(trabMin, cargaHorariaDoDia) + ajusteMin; 
                     acumulado += saldoDia; 
                 }
 
-                // Renderização Otimizada: Só desenha na tela se pertencer ao mês escolhido
                 if (filtroSelecionado === 'todos' || iso.startsWith(filtroSelecionado)) {
                     const tr = document.createElement('tr'); tr.className = 'clickable-row'; tr.onclick = () => navegarParaDia(iso); tr.title = "Clique para editar este dia";
                     if (fds) tr.style.background = "#f8fafc";
@@ -580,7 +620,6 @@
             document.getElementById('resSaldoAcumuladoGeral').innerHTML = formatarBadgeSaldo(acumulado);
         }
 
-        // --- MODAIS (Ajuste, Config, Ajuda) ---
         function abrirModalAjuste() {
             document.getElementById('ajusteDesc').value = ''; document.getElementById('ajusteSinal').value = '+';
             document.getElementById('ajusteHoras').value = ''; document.getElementById('ajusteMinutos').value = '';
@@ -621,7 +660,6 @@
             salvarDados(); fecharConfiguracoes();
         }
 
-        // --- EXPORTAÇÃO E BACKUP ---
         function baixarArquivo(conteudo, mimeType, nomeArquivo) {
             const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([conteudo], { type: mimeType }));
             link.download = nomeArquivo; link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
