@@ -339,6 +339,7 @@
             <div class="doc-section"><h3>📊 4. Ajustes Manuais Pós-Processados</h3><p>O ajuste manual afeta o saldo **após** o cálculo da tolerância. Se você obteve saldo 00:00 (por estar dentro dos 10 min) e adicionar um ajuste de +1 hora, o saldo final real do dia será exatamente de +1 hora.</p></div>
             <div class="doc-section"><h3>💾 5. Backup e Performance</h3><p>Use o seletor de meses no histórico para manter a tela rápida. Baixe backups regularmente para não perder seus dados caso troque de navegador ou limpe os caches.</p></div>
             <div class="doc-section"><h3>🏖️ Feriados e Folgas</h3><p>Use o botão <strong>Feriado</strong> para zerar a carga horária de dias em que você não foi trabalhar por feriado ou folga abonada, evitando débitos indevidos.</p></div>
+            <div class="doc-section"><h3>🌙 Virada de Dia (Turno da Noite)</h3><p>Se o seu horário de saída for menor que o de entrada (ex: entrar 19:00 e sair 00:30), o sistema reconhecerá automaticamente que a saída foi no dia seguinte após você confirmar no pop-up de segurança.</p></div>
             <button class="btn btn-primary" onclick="fecharAjuda()" style="margin-top: 10px; width: 100%;">Entendi, fechar manual</button>
         </div>
     </div>
@@ -464,18 +465,52 @@
             alert('Todos os pontos deste dia já foram marcados!');
         }
 
-        function registrarEdicaoManual(index, valor) { appData.records[formatarDataISO(dataAtualView)][index] = valor; salvarDados(); }
+        // --- NOVA LÓGICA DE VALIDAÇÃO DE DIA SEGUINTE E SALVAMENTO ---
+        function registrarEdicaoManual(index, valor) {
+            const iso = formatarDataISO(dataAtualView);
+            if (!appData.records[iso]) appData.records[iso] = ['', '', '', '', '', '', [], false];
+            const registros = appData.records[iso];
 
-        function limparDiaAtual() {
-            const iso = formatarDataISO(dataAtualView); const dataBR = iso.split('-').reverse().join('/');
-            if (confirm(`Tem certeza que deseja limpar TODOS os registros do dia ${dataBR}?`)) { delete appData.records[iso]; salvarDados(); atualizarViewData(); }
+            const isSaida = index === 1 || index === 3 || index === 5;
+            
+            if (isSaida && valor !== "") {
+                const entStr = registros[index - 1];
+                if (entStr) {
+                    const mEnt = strParaMinutos(entStr);
+                    const mSai = strParaMinutos(valor);
+                    
+                    if (mSai < mEnt) {
+                        const confirmacao = confirm(`Atenção: O horário de saída (${valor}) é anterior à entrada (${entStr}).\n\nO sistema contabilizará essa marcação como término no DIA SEGUINTE.\n\nDeseja confirmar?`);
+                        if (!confirmacao) {
+                            document.getElementById(`p${index}`).value = registros[index] || '';
+                            return; 
+                        }
+                    }
+                }
+            }
+
+            registros[index] = valor; 
+            salvarDados(); 
+            atualizarViewData();
+        }
+
+        // --- NOVA FUNÇÃO DE CALCULO DE TURNO (TRATA VIRADA DA NOITE) ---
+        function calcularDiferencaTurno(entStr, saiStr) {
+            if (!entStr || !saiStr) return 0;
+            let mEnt = strParaMinutos(entStr);
+            let mSai = strParaMinutos(saiStr);
+            
+            if (mSai < mEnt) {
+                mSai += 1440; // Soma 24 horas em minutos
+            }
+            return mSai - mEnt;
         }
 
         function calcularTempoTrabalhado(registros) {
             let total = 0;
-            if (registros[0] && registros[1]) total += strParaMinutos(registros[1]) - strParaMinutos(registros[0]);
-            if (registros[2] && registros[3]) total += strParaMinutos(registros[3]) - strParaMinutos(registros[2]);
-            if (appData.settings.modo === 6 && registros[4] && registros[5]) total += strParaMinutos(registros[5]) - strParaMinutos(registros[4]);
+            if (registros[0] && registros[1]) total += calcularDiferencaTurno(registros[0], registros[1]);
+            if (registros[2] && registros[3]) total += calcularDiferencaTurno(registros[2], registros[3]);
+            if (appData.settings.modo === 6 && registros[4] && registros[5]) total += calcularDiferencaTurno(registros[4], registros[5]);
             return total; 
         }
 
@@ -549,24 +584,30 @@
             } 
 
             if (minutosReferencia > 0) {
-                const limiteMinutos = minutosReferencia + 360; // Soma exatamente 6 horas (360 minutos)
-                const horaLimiteStr = minutosParaStr(limiteMinutos);
+                const limiteMinutos = minutosReferencia + 360; 
+                const horaLimiteStr = minutosParaStr(limiteMinutos % 1440); // % 1440 para o caso de virar a noite
                 alertaCltHtml = `<div class="alert-warning">⚠️ <strong>Aviso:</strong> Você deve ${tipoTurno} até às <strong>${horaLimiteStr}</strong> (6h).</div>`;
             }
             document.getElementById('containerAlertaClt').innerHTML = alertaCltHtml;
 
+            // --- LÓGICA DE PREVISÃO CORRIGIDA PARA VIRADA DE NOITE ---
             let voltaAlmoco = '--:--'; let fimExpediente = '--:--';
-            if (registros[0] && registros[1] && !registros[2]) voltaAlmoco = minutosParaStr(strParaMinutos(registros[1]) + 90);
+            
+            if (registros[0] && registros[1] && !registros[2]) {
+                let mEnt1 = strParaMinutos(registros[0]);
+                let mSai1 = mEnt1 + calcularDiferencaTurno(registros[0], registros[1]);
+                voltaAlmoco = minutosParaStr((mSai1 + 90) % 1440); // wrap nas 24h
+            }
             
             if (registros[0]) {
                 const minutosEntrada = strParaMinutos(registros[0]);
                 if (ehFolga) { fimExpediente = "Livre"; }
                 else {
                     if (registros[1] && registros[2]) {
-                        const intervalo = strParaMinutos(registros[2]) - strParaMinutos(registros[1]);
-                        fimExpediente = minutosParaStr(minutosEntrada + cargaHorariaDoDia + intervalo);
+                        const intervalo = calcularDiferencaTurno(registros[1], registros[2]);
+                        fimExpediente = minutosParaStr((minutosEntrada + cargaHorariaDoDia + intervalo) % 1440);
                     } else if (!registros[1]) {
-                        fimExpediente = minutosParaStr(minutosEntrada + cargaHorariaDoDia + 90);
+                        fimExpediente = minutosParaStr((minutosEntrada + cargaHorariaDoDia + 90) % 1440);
                     }
                 }
             }
