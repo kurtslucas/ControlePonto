@@ -517,18 +517,12 @@
             if (registros[0] && !registros[1]) {
                 minutosReferencia = strParaMinutos(registros[0]);
                 tipoTurno = 'ir para o intervalo';
-            } else if (registros[2] && !registros[3]) {
-                minutosReferencia = strParaMinutos(registros[2]);
-                tipoTurno = 'bater a saída';
-            } else if (appData.settings.modo === 6 && registros[4] && !registros[5]) {
-                minutosReferencia = strParaMinutos(registros[4]);
-                tipoTurno = 'bater a saída';
-            }
+            } 
 
             if (minutosReferencia > 0) {
                 const limiteMinutos = minutosReferencia + 360; // Soma exatamente 6 horas (360 minutos)
                 const horaLimiteStr = minutosParaStr(limiteMinutos);
-                alertaCltHtml = `<div class="alert-warning">⚠️ <strong>Aviso CLT:</strong> Você deve ${tipoTurno} até às <strong>${horaLimiteStr}</strong> para não exceder 6h consecutivas de trabalho.</div>`;
+                alertaCltHtml = `<div class="alert-warning">⚠️ <strong>Aviso:</strong> Você deve ${tipoTurno} até às <strong>${horaLimiteStr}</strong> (limite de 6h).</div>`;
             }
             document.getElementById('containerAlertaClt').innerHTML = alertaCltHtml;
 
@@ -691,18 +685,23 @@
         function getDatasComMarcacao() { return Object.keys(appData.records).filter(iso => { const r = appData.records[iso]; return r.some((v,i) => i<6 && v!=='') || (r[6] && r[6].length > 0); }).sort(); }
 
         function exportarCSV() {
-            let csv = "Data;Dia;Entrada 1;Saida 1;Entrada 2;Saida 2;Entrada 3;Saida 3;Total Trab;Saldo;Acumulado\n";
+            let csv = "Data;Dia;Entrada 1;Saida 1;Entrada 2;Saida 2;Entrada 3;Saida 3;Total Trab;Ajustes Manuais;Saldo;Acumulado\n";
             let acumulado = appData.settings.saldoInicialMinutos;
             getDatasComMarcacao().forEach(iso => {
                 const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
                 const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
                 let saldoStr = ""; let totalStr = "";
+                let ajustesStr = "";
                 
+                if (regs[6] && regs[6].length > 0) {
+                    ajustesStr = regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(' / ');
+                }
+
                 if (trabMin !== 0 || ajusteMin !== 0) {
                     const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia;
                     saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(trabMin);
                 }
-                csv += `${iso.split('-').reverse().join('/')};${obterDiaSemana(iso) + (fds ? " (FDS)" : "")};${regs[0]||''};${regs[1]||''};${regs[2]||''};${regs[3]||''};${regs[4]||''};${regs[5]||''};${totalStr};${saldoStr};${minutosParaStr(acumulado, true)}\n`;
+                csv += `${iso.split('-').reverse().join('/')};${obterDiaSemana(iso) + (fds ? " (FDS)" : "")};${regs[0]||''};${regs[1]||''};${regs[2]||''};${regs[3]||''};${regs[4]||''};${regs[5]||''};${totalStr};${ajustesStr};${saldoStr};${minutosParaStr(acumulado, true)}\n`;
             });
             baixarArquivo(csv, 'text/csv;charset=utf-8;', 'historico_ponto.csv');
         }
@@ -738,10 +737,15 @@
                     saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(trabMin);
                 }
                 const marcacoes = regs.slice(0,6).filter(r => r !== '').join(' às ');
-                let txtAjustes = ""; if(regs[6] && regs[6].length > 0) txtAjustes = " | Ajustes: " + regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(', ');
 
                 txt += `Data: ${iso.split('-').reverse().join('/')} - ${obterDiaSemana(iso) + (fds ? " (Fim de Semana)" : "")}\n`;
-                txt += `Marcações: ${marcacoes || 'Sem marcações'}${txtAjustes}\n`;
+                txt += `Marcações: ${marcacoes || 'Sem marcações'}\n`;
+                
+                if(regs[6] && regs[6].length > 0) {
+                    const txtAjustes = regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(', ');
+                    txt += `Ajustes Manuais: ${txtAjustes}\n`;
+                }
+                
                 txt += `Trabalhado: ${totalStr} | Saldo do Dia: ${saldoStr} | Saldo Acumulado: ${minutosParaStr(acumulado, true)}\n`;
                 txt += "--------------------------------------------------------\n";
             });
