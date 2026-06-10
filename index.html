@@ -581,12 +581,12 @@
             }).sort();
             
             if (datasAll.length === 0) { tbody.innerHTML = `<tr><td colspan="11">Nenhum registro encontrado.</td></tr>`; return; }
-
+        
             atualizarFiltroMeses(datasAll);
             const filtroSelecionado = document.getElementById('filtroMesAno').value;
-
+        
             let acumulado = appData.settings.saldoInicialMinutos;
-
+        
             datasAll.forEach(iso => {
                 const regs = appData.records[iso]; 
                 const trabMin = calcularTempoTrabalhado(regs);
@@ -598,19 +598,32 @@
                     saldoDia = aplicarTolerancia(trabMin, cargaHorariaDoDia) + ajusteMin; 
                     acumulado += saldoDia; 
                 }
-
+        
                 if (filtroSelecionado === 'todos' || iso.startsWith(filtroSelecionado)) {
                     const tr = document.createElement('tr'); tr.className = 'clickable-row'; tr.onclick = () => navegarParaDia(iso); tr.title = "Clique para editar este dia";
                     if (fds) tr.style.background = "#f8fafc";
-                    const ajustesIcon = ajusteMin !== 0 ? ' ⚖️' : '';
-
+        
+                    // --- NOVA LÓGICA: Renderizar os blocos de ajustes inline ---
+                    let blocosAjustesHtml = '';
+                    if (regs[6] && regs[6].length > 0) {
+                        blocosAjustesHtml = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: flex; flex-direction: column; gap: 4px; align-items: center;">`;
+                        regs[6].forEach(ajuste => {
+                            const corBadge = ajuste.val > 0 ? 'color: #065f46; background: #d1fae5;' : 'color: #991b1b; background: #fee2e2;';
+                            blocosAjustesHtml += `<span style="padding: 2px 6px; border-radius: 4px; font-weight: 500; font-size: 0.72rem; ${corBadge}" title="${ajuste.desc}">⚖️ ${ajuste.desc} (${minutosParaStr(ajuste.val, true)})</span>`;
+                        });
+                        blocosAjustesHtml += `</div>`;
+                    }
+        
                     tr.innerHTML = `
                         <td><strong>${iso.split('-').reverse().join('/')}</strong></td>
                         <td>${obterDiaSemana(iso)}${fds ? ' 🏖️' : ''}</td>
                         <td>${regs[0] || '-'}</td><td>${regs[1] || '-'}</td><td>${regs[2] || '-'}</td><td>${regs[3] || '-'}</td>
                         <td class="col-p5" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[4] || '-'}</td>
                         <td class="col-p6" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[5] || '-'}</td>
-                        <td><b>${trabMin > 0 ? minutosParaStr(trabMin) : '-'}${ajustesIcon}</b></td>
+                        <td>
+                            <b>${trabMin > 0 ? minutosParaStr(trabMin) : '-'}</b>
+                            ${blocosAjustesHtml}
+                        </td>
                         <td>${(trabMin !== 0 || saldoDia !== 0) ? formatarBadgeSaldo(saldoDia) : '-'}</td>
                         <td>${formatarBadgeSaldo(acumulado)}</td>
                     `;
