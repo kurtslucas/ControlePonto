@@ -199,11 +199,6 @@
             <button onclick="mudarDia(1)">▶</button>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" id="tab4" onclick="mudarModo(4)">📌 4 Pontos</div>
-            <div class="tab" id="tab6" onclick="mudarModo(6)">⏲️ 6 Pontos</div>
-        </div>
-
         <!-- DIV DINÂMICA DO ALERTA CLT 6 HORAS -->
         <div id="containerAlertaClt"></div>
 
@@ -349,7 +344,7 @@
         let dataAtualView = new Date();
 
         function init() {
-            carregarDados(); renderizarGridPontos(); atualizarViewData(); atualizarTabela();
+            carregarDados(); renderizarGridPontos(); atualizarViewData(); atualizarTabela(); mudarModo(6);
         }
 
         function carregarDados() {
