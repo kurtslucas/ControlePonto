@@ -209,10 +209,12 @@
 
         <div class="points-grid" id="gridPontos"></div>
 
+        <!-- AQUI ESTÁ A NOVA ACTION ROW COM O BOTÃO DE FERIADO -->
         <div class="action-row">
-            <button class="btn btn-primary" style="flex: 2;" onclick="marcarProximo()">⏰ Marcar Próximo Ponto</button>
-            <button class="btn btn-secondary" style="flex: 1;" onclick="abrirModalAjuste()">⚖️ Ajuste Manual</button>
-            <button class="btn btn-danger" style="flex: 1;" onclick="limparDiaAtual()" title="Limpar todos os registros deste dia">🗑️ Limpar Dia</button>
+            <button class="btn btn-primary" style="flex: 2;" onclick="marcarProximo()">⏰ Marcar Próximo</button>
+            <button class="btn btn-secondary" style="flex: 1;" id="btnFeriado" onclick="toggleFeriado()">🏖️ Feriado</button>
+            <button class="btn btn-secondary" style="flex: 1;" onclick="abrirModalAjuste()">⚖️ Ajuste</button>
+            <button class="btn btn-danger" style="flex: 1;" onclick="limparDiaAtual()" title="Limpar todos os registros deste dia">🗑️ Limpar</button>
         </div>
 
         <div id="listaAjustesHoje" style="margin-bottom: 15px;"></div>
@@ -336,6 +338,7 @@
             <div class="doc-section"><h3>🔮 3. Previsões e Cliques</h3><p>Clique nos quadros azuis de "Previsão Volta" ou "Fim Expediente" para preencher seu formulário automaticamente com o horário ideal.</p></div>
             <div class="doc-section"><h3>📊 4. Ajustes Manuais Pós-Processados</h3><p>O ajuste manual afeta o saldo **após** o cálculo da tolerância. Se você obteve saldo 00:00 (por estar dentro dos 10 min) e adicionar um ajuste de +1 hora, o saldo final real do dia será exatamente de +1 hora.</p></div>
             <div class="doc-section"><h3>💾 5. Backup e Performance</h3><p>Use o seletor de meses no histórico para manter a tela rápida. Baixe backups regularmente para não perder seus dados caso troque de navegador ou limpe os caches.</p></div>
+            <div class="doc-section"><h3>🏖️ Feriados e Folgas</h3><p>Use o botão <strong>Feriado</strong> para zerar a carga horária de dias em que você não foi trabalhar por feriado ou folga abonada, evitando débitos indevidos.</p></div>
             <button class="btn btn-primary" onclick="fecharAjuda()" style="margin-top: 10px; width: 100%;">Entendi, fechar manual</button>
         </div>
     </div>
@@ -405,10 +408,21 @@
             const iso = formatarDataISO(dataAtualView); const hojeIso = formatarDataISO(new Date());
             let textoDia = dataAtualView.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
             if (iso === hojeIso) textoDia = 'Hoje, ' + textoDia;
-            document.getElementById('displayDataCorrente').innerText = textoDia;
             
-            if (!appData.records[iso]) appData.records[iso] = ['', '', '', '', '', ''];
+            if (!appData.records[iso]) appData.records[iso] = ['', '', '', '', '', '', [], false];
+            const isFeriadoFlag = appData.records[iso][7] === true;
+            
+            document.getElementById('displayDataCorrente').innerHTML = textoDia + (isFeriadoFlag ? ' <span style="color:var(--danger); font-size:0.8em; font-weight: bold;">(Feriado)</span>' : '');
+            
             preencherInputs(); atualizarCalculosView();
+        }
+
+        // --- NOVA FUNÇÃO PARA FERIADOS ---
+        function toggleFeriado() {
+            const iso = formatarDataISO(dataAtualView);
+            if (!appData.records[iso]) appData.records[iso] = ['', '', '', '', '', '', [], false];
+            appData.records[iso][7] = !appData.records[iso][7]; // Inverte a flag
+            salvarDados(); atualizarViewData();
         }
 
         function mudarModo(modo) {
@@ -479,9 +493,22 @@
         }
 
         function atualizarCalculosView() {
-            const iso = formatarDataISO(dataAtualView); const registros = appData.records[iso] || ['', '', '', '', '', ''];
-            const fds = ehFimDeSemana(iso); const cargaHorariaDoDia = fds ? 0 : appData.settings.cargaDiaria;
+            const iso = formatarDataISO(dataAtualView); const registros = appData.records[iso] || ['', '', '', '', '', '', [], false];
+            const fds = ehFimDeSemana(iso); 
+            const isFeriadoFlag = registros[7] === true;
+            const ehFolga = fds || isFeriadoFlag;
+            const cargaHorariaDoDia = ehFolga ? 0 : appData.settings.cargaDiaria;
             
+            // Controle do botão Feriado
+            const btnFeriado = document.getElementById('btnFeriado');
+            if (isFeriadoFlag) {
+                btnFeriado.classList.replace('btn-secondary', 'btn-primary');
+                btnFeriado.innerText = "🏖️ É Feriado";
+            } else {
+                btnFeriado.classList.replace('btn-primary', 'btn-secondary');
+                btnFeriado.innerText = "🏖️ Marcar Feriado";
+            }
+
             const divAjustes = document.getElementById('listaAjustesHoje'); divAjustes.innerHTML = '';
             if (registros[6] && registros[6].length > 0) {
                 registros[6].forEach((ajuste, idx) => {
@@ -491,10 +518,12 @@
                 });
             }
 
-            if (fds) {
-                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia (FDS Livre)"; document.getElementById('labelFimExpediente').innerText = "Horas Extras no FDS";
+            if (ehFolga) {
+                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia (Livre)"; 
+                document.getElementById('labelFimExpediente').innerText = "Horas Extras";
             } else {
-                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia"; document.getElementById('labelFimExpediente').innerText = "Fim de Expediente 👆";
+                document.getElementById('labelSaldoHoje').innerText = "Saldo do Dia"; 
+                document.getElementById('labelFimExpediente').innerText = "Fim de Expediente 👆";
             }
 
             const tempoTrabalhado = calcularTempoTrabalhado(registros);
@@ -522,7 +551,7 @@
             if (minutosReferencia > 0) {
                 const limiteMinutos = minutosReferencia + 360; // Soma exatamente 6 horas (360 minutos)
                 const horaLimiteStr = minutosParaStr(limiteMinutos);
-                alertaCltHtml = `<div class="alert-warning">⚠️ <strong>Aviso:</strong> Você deve ${tipoTurno} até às <strong>${horaLimiteStr}</strong> (limite de 6h).</div>`;
+                alertaCltHtml = `<div class="alert-warning">⚠️ <strong>Aviso:</strong> Você deve ${tipoTurno} até às <strong>${horaLimiteStr}</strong> (6h).</div>`;
             }
             document.getElementById('containerAlertaClt').innerHTML = alertaCltHtml;
 
@@ -531,7 +560,7 @@
             
             if (registros[0]) {
                 const minutosEntrada = strParaMinutos(registros[0]);
-                if (fds) { fimExpediente = "Livre (FDS)"; }
+                if (ehFolga) { fimExpediente = "Livre"; }
                 else {
                     if (registros[1] && registros[2]) {
                         const intervalo = strParaMinutos(registros[2]) - strParaMinutos(registros[1]);
@@ -571,7 +600,7 @@
             
             const datasAll = Object.keys(appData.records).filter(iso => {
                 const r = appData.records[iso];
-                return r.some((v, i) => i < 6 && v !== '') || (r[6] && r[6].length > 0);
+                return r.some((v, i) => i < 6 && v !== '') || (r[6] && r[6].length > 0) || r[7] === true;
             }).sort();
             
             if (datasAll.length === 0) { tbody.innerHTML = `<tr><td colspan="11">Nenhum registro encontrado.</td></tr>`; return; }
@@ -585,7 +614,10 @@
                 const regs = appData.records[iso]; 
                 const trabMin = calcularTempoTrabalhado(regs);
                 const ajusteMin = calcularAjustes(regs);
-                const fds = ehFimDeSemana(iso); const cargaHorariaDoDia = fds ? 0 : appData.settings.cargaDiaria;
+                const fds = ehFimDeSemana(iso);
+                const isFeriadoFlag = regs[7] === true;
+                const ehFolga = fds || isFeriadoFlag;
+                const cargaHorariaDoDia = ehFolga ? 0 : appData.settings.cargaDiaria;
                 
                 let saldoDia = 0;
                 if (trabMin !== 0 || ajusteMin !== 0) { 
@@ -594,10 +626,9 @@
                 }
         
                 if (filtroSelecionado === 'todos' || iso.startsWith(filtroSelecionado)) {
-                    const tr = document.createElement('tr'); tr.className = 'clickable-row'; tr.onclick = () => navegarParaDia(iso); tr.title = "Clique para editar este dia";
-                    if (fds) tr.style.background = "#f8fafc";
-        
-                    // --- NOVA LÓGICA: Renderizar os blocos de ajustes inline ---
+                    const tr = document.createElement('tr'); tr.className = 'clickable-row'; tr.onclick = () => navegarParaDia(iso);
+                    if (ehFolga) tr.style.background = "#f8fafc";
+
                     let blocosAjustesHtml = '';
                     if (regs[6] && regs[6].length > 0) {
                         blocosAjustesHtml = `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: flex; flex-direction: column; gap: 4px; align-items: center;">`;
@@ -610,7 +641,7 @@
         
                     tr.innerHTML = `
                         <td><strong>${iso.split('-').reverse().join('/')}</strong></td>
-                        <td>${obterDiaSemana(iso)}${fds ? ' 🏖️' : ''}</td>
+                        <td>${obterDiaSemana(iso)}${fds ? ' 🏖️' : (isFeriadoFlag ? ' 🎈' : '')}</td>
                         <td>${regs[0] || '-'}</td><td>${regs[1] || '-'}</td><td>${regs[2] || '-'}</td><td>${regs[3] || '-'}</td>
                         <td class="col-p5" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[4] || '-'}</td>
                         <td class="col-p6" style="display:${appData.settings.modo === 6 ? 'table-cell' : 'none'}">${regs[5] || '-'}</td>
@@ -682,73 +713,143 @@
             }; reader.readAsText(file);
         }
 
-        function getDatasComMarcacao() { return Object.keys(appData.records).filter(iso => { const r = appData.records[iso]; return r.some((v,i) => i<6 && v!=='') || (r[6] && r[6].length > 0); }).sort(); }
+        function getDatasParaExportacao() {
+            return Object.keys(appData.records).filter(iso => {
+                const r = appData.records[iso];
+                return r.some((v, i) => i < 6 && v !== '') || (r[6] && r[6].length > 0) || r[7] === true;
+            }).sort();
+        }
 
         function exportarCSV() {
             let csv = "Data;Dia;Entrada 1;Saida 1;Entrada 2;Saida 2;Entrada 3;Saida 3;Total Trab;Ajustes Manuais;Saldo;Acumulado\n";
             let acumulado = appData.settings.saldoInicialMinutos;
-            getDatasComMarcacao().forEach(iso => {
-                const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
-                const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
-                let saldoStr = ""; let totalStr = "";
+
+            getDatasParaExportacao().forEach(iso => {
+                const regs = appData.records[iso];
+                const trabMin = calcularTempoTrabalhado(regs);
+                const ajusteMin = calcularAjustes(regs);
+                const fds = ehFimDeSemana(iso);
+                const isFeriadoFlag = regs[7] === true;
+                const carga = (fds || isFeriadoFlag) ? 0 : appData.settings.cargaDiaria;
+
+                let saldoStr = "";
+                let totalStr = "";
                 let ajustesStr = "";
-                
+
                 if (regs[6] && regs[6].length > 0) {
                     ajustesStr = regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(' / ');
                 }
 
                 if (trabMin !== 0 || ajusteMin !== 0) {
-                    const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia;
-                    saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(trabMin);
+                    const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin;
+                    acumulado += saldoDia;
+                    saldoStr = minutosParaStr(saldoDia, true);
+                    totalStr = minutosParaStr(trabMin);
                 }
-                csv += `${iso.split('-').reverse().join('/')};${obterDiaSemana(iso) + (fds ? " (FDS)" : "")};${regs[0]||''};${regs[1]||''};${regs[2]||''};${regs[3]||''};${regs[4]||''};${regs[5]||''};${totalStr};${ajustesStr};${saldoStr};${minutosParaStr(acumulado, true)}\n`;
+
+                let infoDia = obterDiaSemana(iso);
+                if (fds) infoDia += " (FDS)";
+                else if (isFeriadoFlag) infoDia += " (Feriado)";
+
+                csv += `${iso.split('-').reverse().join('/')};${infoDia};${regs[0] || ''};${regs[1] || ''};${regs[2] || ''};${regs[3] || ''};${regs[4] || ''};${regs[5] || ''};${totalStr};${ajustesStr};${saldoStr};${minutosParaStr(acumulado, true)}\n`;
             });
+
             baixarArquivo(csv, 'text/csv;charset=utf-8;', 'historico_ponto.csv');
         }
 
         function exportarJSON() {
-            let dadosProcessados = { configuracoes: { cargaHorariaBaseMinutos: appData.settings.cargaDiaria, saldoInicialMinutos: appData.settings.saldoInicialMinutos, saldoInicialFormatado: minutosParaStr(appData.settings.saldoInicialMinutos, true) }, historico: [] };
+            let dadosProcessados = {
+                configuracoes: {
+                    cargaHorariaBaseMinutos: appData.settings.cargaDiaria,
+                    saldoInicialMinutos: appData.settings.saldoInicialMinutos,
+                    saldoInicialFormatado: minutosParaStr(appData.settings.saldoInicialMinutos, true)
+                },
+                historico: []
+            };
+
             let acumulado = appData.settings.saldoInicialMinutos;
-            getDatasComMarcacao().forEach(iso => {
-                const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
-                const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
-                let saldoDia = 0; if (trabMin !== 0 || ajusteMin !== 0) { saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia; }
+
+            getDatasParaExportacao().forEach(iso => {
+                const regs = appData.records[iso];
+                const trabMin = calcularTempoTrabalhado(regs);
+                const ajusteMin = calcularAjustes(regs);
+                const fds = ehFimDeSemana(iso);
+                const isFeriadoFlag = regs[7] === true;
+                const carga = (fds || isFeriadoFlag) ? 0 : appData.settings.cargaDiaria;
+
+                let saldoDia = 0;
+                if (trabMin !== 0 || ajusteMin !== 0) {
+                    saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin;
+                    acumulado += saldoDia;
+                }
+
                 dadosProcessados.historico.push({
-                    dataISO: iso, dataBR: iso.split('-').reverse().join('/'), diaSemana: obterDiaSemana(iso), fimDeSemana: fds,
-                    marcacoes: { entrada1: regs[0] || "", saida1: regs[1] || "", entrada2: regs[2] || "", saida2: regs[3] || "", entrada3: regs[4] || "", saida3: regs[5] || "" },
-                    ajustesManuais: regs[6] || [], totalTrabalhadoFormatado: trabMin > 0 ? minutosParaStr(trabMin) : "00:00",
-                    saldoDiaFormatado: (trabMin !== 0 || saldoDia !== 0) ? minutosParaStr(saldoDia, true) : "00:00", saldoAcumuladoFormatado: minutosParaStr(acumulado, true)
+                    dataISO: iso,
+                    dataBR: iso.split('-').reverse().join('/'),
+                    diaSemana: obterDiaSemana(iso),
+                    fimDeSemana: fds,
+                    feriado: isFeriadoFlag,
+                    marcacoes: {
+                        entrada1: regs[0] || "",
+                        saida1: regs[1] || "",
+                        entrada2: regs[2] || "",
+                        saida2: regs[3] || "",
+                        entrada3: regs[4] || "",
+                        saida3: regs[5] || ""
+                    },
+                    ajustesManuais: regs[6] || [],
+                    totalTrabalhadoFormatado: trabMin > 0 ? minutosParaStr(trabMin) : "00:00",
+                    saldoDiaFormatado: (trabMin !== 0 || saldoDia !== 0) ? minutosParaStr(saldoDia, true) : "00:00",
+                    saldoAcumuladoFormatado: minutosParaStr(acumulado, true)
                 });
             });
+
             baixarArquivo(JSON.stringify(dadosProcessados, null, 2), 'application/json', 'historico_ponto_processado.json');
         }
 
         function exportarTXT() {
             let txt = "========== RELATÓRIO DE PONTO ==========\n\n";
             let acumulado = appData.settings.saldoInicialMinutos;
-            txt += `Saldo Inicial Base: ${minutosParaStr(acumulado, true)}\nCarga Horária Base: ${minutosParaStr(appData.settings.cargaDiaria)}\n\n`;
-            getDatasComMarcacao().forEach(iso => {
-                const regs = appData.records[iso]; const trabMin = calcularTempoTrabalhado(regs); const ajusteMin = calcularAjustes(regs);
-                const fds = ehFimDeSemana(iso); const carga = fds ? 0 : appData.settings.cargaDiaria;
-                let saldoStr = "00:00"; let totalStr = "00:00";
-                
-                if (trabMin !== 0 || ajusteMin !== 0) {
-                    const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin; acumulado += saldoDia;
-                    saldoStr = minutosParaStr(saldoDia, true); totalStr = minutosParaStr(trabMin);
-                }
-                const marcacoes = regs.slice(0,6).filter(r => r !== '').join(' às ');
 
-                txt += `Data: ${iso.split('-').reverse().join('/')} - ${obterDiaSemana(iso) + (fds ? " (Fim de Semana)" : "")}\n`;
+            txt += `Saldo Inicial Base: ${minutosParaStr(acumulado, true)}\n`;
+            txt += `Carga Horária Base: ${minutosParaStr(appData.settings.cargaDiaria)}\n\n`;
+
+            getDatasParaExportacao().forEach(iso => {
+                const regs = appData.records[iso];
+                const trabMin = calcularTempoTrabalhado(regs);
+                const ajusteMin = calcularAjustes(regs);
+                const fds = ehFimDeSemana(iso);
+                const isFeriadoFlag = regs[7] === true;
+                const carga = (fds || isFeriadoFlag) ? 0 : appData.settings.cargaDiaria;
+
+                let saldoStr = "00:00";
+                let totalStr = "00:00";
+
+                if (trabMin !== 0 || ajusteMin !== 0) {
+                    const saldoDia = aplicarTolerancia(trabMin, carga) + ajusteMin;
+                    acumulado += saldoDia;
+                    saldoStr = minutosParaStr(saldoDia, true);
+                    totalStr = minutosParaStr(trabMin);
+                }
+
+                const marcacoes = regs.slice(0, 6).filter(r => r !== '').join(' às ');
+
+                let infoDia = obterDiaSemana(iso);
+                if (fds) infoDia += " (FDS)";
+                else if (isFeriadoFlag) infoDia += " (Feriado)";
+
+                txt += `Data: ${iso.split('-').reverse().join('/')} - ${infoDia}\n`;
                 txt += `Marcações: ${marcacoes || 'Sem marcações'}\n`;
-                
-                if(regs[6] && regs[6].length > 0) {
+
+                if (regs[6] && regs[6].length > 0) {
                     const txtAjustes = regs[6].map(a => `${a.desc} (${minutosParaStr(a.val, true)})`).join(', ');
                     txt += `Ajustes Manuais: ${txtAjustes}\n`;
                 }
-                
+
                 txt += `Trabalhado: ${totalStr} | Saldo do Dia: ${saldoStr} | Saldo Acumulado: ${minutosParaStr(acumulado, true)}\n`;
                 txt += "--------------------------------------------------------\n";
             });
+
             baixarArquivo(txt, 'text/plain;charset=utf-8;', 'historico_ponto.txt');
         }
 
